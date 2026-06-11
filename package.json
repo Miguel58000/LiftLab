@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev --prefix LiftLab",
-    "build": "npm run build --prefix LiftLab",
+    "build": "npm install --prefix LiftLab && npm run build --prefix LiftLab",
     "start": "npm run start --prefix LiftLab",
     "lint": "npm run lint --prefix LiftLab"
   }
