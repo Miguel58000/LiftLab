@@ -1,0 +1,12 @@
+{
+  "name": "pulsesplit-root",
+  "version": "1.1.0",
+  "description": "Root package runner for PulseSplit Next.js project",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix LiftLab",
+    "build": "npm run build --prefix LiftLab",
+    "start": "npm run start --prefix LiftLab",
+    "lint": "npm run lint --prefix LiftLab"
+  }
+}

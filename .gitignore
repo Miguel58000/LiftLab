@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+LiftLab/node_modules/
+
+# next.js build output
+LiftLab/.next/
+LiftLab/out/
+LiftLab/build/
+
+# env files containing secrets
+.env*
+LiftLab/.env*
+
+# debug and logs
+npm-debug.log*
+*.tsbuildinfo
+LiftLab/next-env.d.ts
+.DS_Store
+*.pem
