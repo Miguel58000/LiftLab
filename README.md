@@ -58,7 +58,7 @@ You can run the application directly from the **workspace root** using the deleg
 
 ### Installation
 
-First, navigate to the `pulsesplit` directory and install the dependencies:
+First, navigate to the `LiftLab` directory and install the dependencies:
 
 ```bash
 cd LiftLab
@@ -73,7 +73,7 @@ You can start the dev server from the **root directory** (thanks to root-level n
 npm run dev
 ```
 
-Or run directly inside the `pulsesplit` folder:
+Or run directly inside the `LiftLab` folder:
 
 ```bash
 cd LiftLab
