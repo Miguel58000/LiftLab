@@ -149,7 +149,7 @@ El proyecto está estructurado con la aplicación Next.js dentro del subdirector
 - **Estilos**: Tailwind CSS & Lucide Icons
 - **Componentes UI**: Base UI & componentes personalizados
 - **Backend / Sincronización**: Firebase Auth & Cloud Firestore
-- **Visualización de Datos**: Recharts (gráficos radar y de barras)
+- **Visualización de Datos**: Recharts (gráficos radar y de barras).
 
 ---
 
