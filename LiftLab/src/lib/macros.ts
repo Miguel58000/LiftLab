@@ -1,7 +1,9 @@
-export type FitnessGoal = 'cutting' | 'maintenance' | 'bulking' | 'hypertrophy' | 'strength' | 'endurance';
+export type NutritionPhase = 'cutting' | 'maintenance' | 'bulking';
+export type TrainingObjective = 'hypertrophy' | 'strength' | 'endurance';
+export type FitnessGoal = NutritionPhase | TrainingObjective;
 
 export interface MacroResult {
-  goal: FitnessGoal;
+  goal: NutritionPhase;
   goalLabel: Record<'en' | 'es', string>;
   calories: number;
   protein: number;
@@ -20,10 +22,13 @@ export function calculateMacros(
   age: number,
   gender: 'male' | 'female' | 'other',
   trainingHours: number,
-  goal: 'cutting' | 'maintenance' | 'bulking',
-  objective: 'hypertrophy' | 'strength' | 'endurance' = 'hypertrophy',
+  goal: FitnessGoal,
+  objective: TrainingObjective = 'hypertrophy',
   userProteinPref?: number
 ): MacroResult {
+  // Normalizar el objetivo a una fase nutricional válida para el cálculo calórico
+  const nutritionPhase: NutritionPhase = (goal === 'cutting' || goal === 'bulking' || goal === 'maintenance') ? goal : 'maintenance';
+
   // BMR
   const bmr = gender === 'male'
     ? Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5)
@@ -42,7 +47,7 @@ export function calculateMacros(
 
   // Adjust for goal
   let calories: number;
-  switch (goal) {
+  switch (nutritionPhase) {
     case 'cutting':
       calories = Math.round(tdee * 0.85); // 15% deficit (more sustainable for high volume)
       break;
@@ -54,7 +59,7 @@ export function calculateMacros(
   }
 
   // Protein: User pref or default based on science (1.6-2.2 range)
-  let proteinGPerKg = userProteinPref || (goal === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
+  let proteinGPerKg = userProteinPref || (nutritionPhase === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
   const protein = Math.round(proteinGPerKg * weightKg);
 
   // Healthy Fat: Vital for hormones (0.8g - 1g / kg)
@@ -68,13 +73,13 @@ export function calculateMacros(
   const carbs = Math.round(remainingCal / 4);
 
   return {
-    goal,
+    goal: nutritionPhase,
     goalLabel: {
-      en: goal === 'cutting' ? 'Cutting Phase' : goal === 'bulking' ? 'Bulking Phase' : 'Maintenance',
-      es: goal === 'cutting' ? 'Fase de Definición' : goal === 'bulking' ? 'Fase de Volumen' : 'Mantenimiento',
+      en: nutritionPhase === 'cutting' ? 'Cutting Phase' : nutritionPhase === 'bulking' ? 'Bulking Phase' : 'Maintenance',
+      es: nutritionPhase === 'cutting' ? 'Fase de Definición' : nutritionPhase === 'bulking' ? 'Fase de Volumen' : 'Mantenimiento',
     },
-    goalEn: goal === 'cutting' ? 'Cutting Phase' : goal === 'bulking' ? 'Bulking Phase' : 'Maintenance',
-    goalEs: goal === 'cutting' ? 'Fase de Definición' : goal === 'bulking' ? 'Fase de Volumen' : 'Mantenimiento',
+    goalEn: nutritionPhase === 'cutting' ? 'Cutting Phase' : nutritionPhase === 'bulking' ? 'Bulking Phase' : 'Maintenance',
+    goalEs: nutritionPhase === 'cutting' ? 'Fase de Definición' : nutritionPhase === 'bulking' ? 'Fase de Volumen' : 'Mantenimiento',
     calories,
     protein,
     carbs,
@@ -95,7 +100,7 @@ export function goalLabel(goal: FitnessGoal, lang: 'en' | 'es'): string {
  * Lógica simplificada: volumen alto ⇒ necesitas superávit (bulking),
  * volumen medio/bajo ⇒ mantenimiento o definición.
  */
-export function inferBestGoal(weeklySets: number, weightKg: number): FitnessGoal {
+export function inferBestGoal(weeklySets: number, weightKg: number): NutritionPhase {
   // Si hay mucho volumen, probablemente estés en bulking
   if (weeklySets > 45) return 'bulking';
   if (weeklySets > 20) return 'maintenance';
