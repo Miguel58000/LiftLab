@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { User, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, UserCredential } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase"; // Asegúrate que googleProvider sea una instancia de GoogleAuthProvider
+import { User, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, UserCredential, sendEmailVerification } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 import { loadUserData, saveUserData } from "@/lib/firestore";
 import { useStore } from "@/store/useStore";
 import { useRouter, usePathname } from "next/navigation";
@@ -18,7 +18,7 @@ interface AuthCtx {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthCtx>({ user: null, loading: true, signInWithGoogle: async () => {}, signInWithEmail: async () => ({} as UserCredential), signUpWithEmail: async () => ({} as UserCredential), logout: async () => {} });
+const AuthContext = createContext<AuthCtx>({ user: null, loading: true, signInWithGoogle: async () => { }, signInWithEmail: async () => ({} as UserCredential), signUpWithEmail: async () => ({} as UserCredential), logout: async () => { } });
 export const useAuth = () => useContext(AuthContext);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (pathname === "/login") {
           router.replace("/");
         }
-        
+
         // Sincronización en segundo plano para no bloquear el renderizado si la red es lenta
         syncing.current = true;
         try {
@@ -138,7 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUpWithEmail = async (e: string, p: string) => {
-    return await createUserWithEmailAndPassword(auth, e, p);
+    const userCredential = await createUserWithEmailAndPassword(auth, e, p);
+    if (userCredential.user) {
+      await sendEmailVerification(userCredential.user);
+    }
+    return userCredential;
   };
 
   const logout = async () => {

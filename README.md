@@ -10,6 +10,10 @@ LiftLab is a next-generation fitness routine analyzer and tracking application. 
 ## 🚀 Key Features
 
 - **Workout Builder**: Easily build and organize your routine days (e.g., Push, Pull, Legs) with custom sets, reps, weight, and rest durations.
+- **Session Persistence (Save & Resume)**: Pause your workout at any time and resume exactly where you left off later.
+- **Dynamic Routine Adjustment**: Add, edit, or delete exercises directly from the tracker during a live session.
+- **On-the-fly Custom Exercises**: Create new exercises in your database without leaving the active workout.
+- **Automatic Rest Timer**: Real-time rest tracking triggered automatically after finishing a set.
 - **Analysis Dashboard**: Real-time analysis of weekly muscle group volume (including primary/secondary muscle load contributions), muscle balance radar charts, and muscle heatmap fatigue distribution.
 - **Smart Optimizer Assistant**: Walks you through generating a personalized, balanced routine day split matching your strong points and priority muscles.
 - **Progress Tracking**: Log workout sessions with advanced metrics like Weight per Rep and Speed Deviation (cardio consistency), and review trends in efficiency and intensity.
@@ -93,6 +97,14 @@ npm run start
 
 ## 📜 Version History
 
+### `v1.2.0` (Latest Release - 2026-06-18)
+
+- **Workout Interactivity**: Added the ability to add, delete, and rename exercises directly within an active session.
+- **Smart Rest Timer**: Implemented a rest chronometer that activates automatically when a set is marked as completed.
+- **Pause & Resume Persistence**: Session progress is now saved globally, allowing users to exit the app and resume their workout later.
+- **In-Workout Creation**: Users can now create and define new custom exercises while tracking a workout.
+- **Exit Confirmation**: New custom dialog for exiting sessions with options to save progress or discard.
+
 ### `v1.1.0` (Current Release - 2026-06-07)
 
 - **Advanced Progress Metrics**: Integrated Sets, Weight per Rep, and Speed Deviation (Cardio Consistency) into charts and data tables.
@@ -129,6 +141,10 @@ El proyecto está estructurado con la aplicación Next.js dentro del subdirector
 ## 🚀 Funcionalidades Principales
 
 - **Constructor de Rutinas**: Armá y organizá fácilmente tus días de entrenamiento (ej. Empuje, Tirón, Piernas) con series, repeticiones, peso y tiempos de descanso personalizados.
+- **Persistencia de Sesión (Guardar y Reanudar)**: Pausá tu entrenamiento en cualquier momento y retomalo exactamente donde lo dejaste.
+- **Ajuste Dinámico de Rutina**: Añadí, editá o eliminá ejercicios directamente desde el tracker durante una sesión en vivo.
+- **Creación de Ejercicios en Vivo**: Creá nuevos ejercicios en tu base de datos sin salir del entrenamiento activo.
+- **Cronómetro de Descanso Automático**: Seguimiento en tiempo real del descanso activado automáticamente al finalizar una serie.
 - **Panel de Análisis**: Análisis en tiempo real del volumen semanal por grupo muscular (incluyendo la contribución de músculos primarios y secundarios), gráficos radar de balance muscular y mapa de calor de distribución de fatiga.
 - **Asistente de Optimización**: Te guía para generar una división de rutina personalizada y equilibrada según tus puntos fuertes y músculos prioritarios.
 - **Seguimiento de Progreso**: Registrá tus sesiones con métricas avanzadas como Peso por Repetición y Desvío de Velocidad (consistencia), y revisá tendencias de eficiencia e intensidad.
@@ -211,6 +227,14 @@ npm run start
 ---
 
 ## 📜 Historial de Versiones
+
+### `v1.2.0` (Lanzamiento Actual - 18/06/2026)
+
+- **Interactividad en el Tracker**: Se añadió la posibilidad de agregar, eliminar y renombrar ejercicios directamente en una sesión activa.
+- **Cronómetro de Descanso Inteligente**: Implementación de un cronómetro que se activa automáticamente al marcar una serie como completada.
+- **Persistencia de Pausa**: El progreso de la sesión se guarda globalmente, permitiendo salir de la app y retomar el entreno más tarde.
+- **Creación durante el Entreno**: Los usuarios pueden crear y definir nuevos ejercicios personalizados mientras trackean su sesión.
+- **Confirmación de Salida**: Nuevo diálogo personalizado al cerrar sesiones con opciones para guardar progreso o descartar.
 
 ### `v1.1.0` (Versión Actual - 07/06/2026)
 

@@ -20,9 +20,9 @@ import { Settings } from "lucide-react";
 const inter = Inter({ subsets: ["latin"] });
 
 function SettingsModal({ trigger }: { trigger: React.ReactElement }) {
-  const { 
-    language, setLanguage, 
-    weightUnit, setWeightUnit, 
+  const {
+    language, setLanguage,
+    weightUnit, setWeightUnit,
     distanceUnit, setDistanceUnit,
     profile, setProfile,
   } = useStore();
@@ -70,18 +70,18 @@ function SettingsModal({ trigger }: { trigger: React.ReactElement }) {
               const currentTheme = theme === 'system' ? (resolvedTheme || 'dark') : (theme || 'dark');
               const themeLabel = currentTheme === 'dark' ? t.settings_theme_dark : t.settings_theme_light;
               return (
-            <Select 
-                  value={currentTheme} 
-              onValueChange={(v) => v && setTheme(v)}
-            >
-              <SelectTrigger>
+                <Select
+                  value={currentTheme}
+                  onValueChange={(v) => v && setTheme(v)}
+                >
+                  <SelectTrigger>
                     <SelectValue>{themeLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">{t.settings_theme_light}</SelectItem>
-                <SelectItem value="dark">{t.settings_theme_dark}</SelectItem>
-              </SelectContent>
-            </Select>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">{t.settings_theme_light}</SelectItem>
+                    <SelectItem value="dark">{t.settings_theme_dark}</SelectItem>
+                  </SelectContent>
+                </Select>
               );
             })()}
           </div>
@@ -139,9 +139,9 @@ function Navbar() {
             <Link href="/tracker" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">{t.nav_tracker}</Link>
             <Link href="/dashboard" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">{t.nav_dashboard}</Link>
           </div>
-          
+
           <div className="flex items-center gap-2 md:border-l border-zinc-200 dark:border-zinc-800 md:pl-6 ml-2">
-            <SettingsModal 
+            <SettingsModal
               trigger={
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50">
                   <Settings className="w-4 h-4" />
@@ -187,11 +187,10 @@ function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
-                isActive
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${isActive
                   ? "text-emerald-500 dark:text-emerald-400 scale-105"
                   : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
-              }`}
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium tracking-tight">{label}</span>
@@ -210,8 +209,8 @@ function Footer() {
   if (isLogin) return null;
 
   const footerText = language === "es"
-    ? "Desarrollado por Miguel Rodríguez - 2026 - v1.1.0 - Todos los derechos reservados"
-    : "Developed by Miguel Rodríguez - 2026 - v1.1.0 - All rights reserved";
+    ? "Desarrollado por Miguel Rodríguez - 2026 - v1.2.0 - Todos los derechos reservados"
+    : "Developed by Miguel Rodríguez - 2026 - v1.2.0 - All rights reserved";
 
   return (
     <footer className="w-full border-t border-zinc-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-950 py-6 text-center transition-colors">

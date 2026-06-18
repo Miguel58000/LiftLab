@@ -1,4 +1,4 @@
-export type FitnessGoal = 'cutting' | 'maintenance' | 'bulking';
+export type FitnessGoal = 'cutting' | 'maintenance' | 'bulking' | 'hypertrophy' | 'strength' | 'endurance';
 
 export interface MacroResult {
   goal: FitnessGoal;
@@ -12,20 +12,19 @@ export interface MacroResult {
 }
 
 /**
- * Calcula calorías y macros basados en:
- * - Fórmula de Mifflin-St Jeor para TMB
- * - Nivel de actividad aproximado según volumen total semanal de entrenamiento
- * - Objetivo: déficit (cutting), mantenimiento, superávit (bulking)
+ * Improved calculation based on training hours, objective and healthy fat ratios.
  */
 export function calculateMacros(
   weightKg: number,
   heightCm: number,
   age: number,
   gender: 'male' | 'female' | 'other',
-  weeklySets: number,
-  goal: FitnessGoal
+  trainingHours: number,
+  goal: 'cutting' | 'maintenance' | 'bulking',
+  objective: 'hypertrophy' | 'strength' | 'endurance' = 'hypertrophy',
+  userProteinPref?: number
 ): MacroResult {
-  // BMR Mifflin-St Jeor
+  // BMR
   const bmr = gender === 'male'
     ? Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5)
     : gender === 'female'
@@ -33,17 +32,11 @@ export function calculateMacros(
       : Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 78); // "other" approx
 
   // TDEE factor based on weekly training sets
-  // Beginner: 1-20 sets; Intermediate: 21-40; Advanced: 41-60; Very advanced: >60
   let activityFactor: number;
-  if (weeklySets <= 20) {
-    activityFactor = 1.25; // sedentary + some light activity
-  } else if (weeklySets <= 40) {
-    activityFactor = 1.4; // moderately active
-  } else if (weeklySets <= 65) {
-    activityFactor = 1.55; // active
-  } else {
-    activityFactor = 1.725; // very active
-  }
+  if (trainingHours < 3) activityFactor = 1.2;
+  else if (trainingHours < 6) activityFactor = 1.375;
+  else if (trainingHours < 9) activityFactor = 1.55;
+  else activityFactor = 1.725;
 
   const tdee = Math.round(bmr * activityFactor);
 
@@ -51,31 +44,28 @@ export function calculateMacros(
   let calories: number;
   switch (goal) {
     case 'cutting':
-      calories = Math.round(tdee * 0.8); // 20% deficit
+      calories = Math.round(tdee * 0.85); // 15% deficit (more sustainable for high volume)
       break;
     case 'bulking':
-      calories = Math.round(tdee * 1.1); // 10% surplus
+      calories = Math.round(tdee * 1.15); // 15% surplus
       break;
     default: // maintenance
       calories = tdee;
   }
 
-  // Macro split
-  // Protein: 2g/kg for cutting, 1.8g/kg bulking, 1.6g/kg maintenance
-  let proteinGPerKg: number;
-  switch (goal) {
-    case 'cutting': proteinGPerKg = 2.2; break;
-    case 'bulking': proteinGPerKg = 1.8; break;
-    default: proteinGPerKg = 1.6;
-  }
-
+  // Protein: User pref or default based on science (1.6-2.2 range)
+  let proteinGPerKg = userProteinPref || (goal === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
   const protein = Math.round(proteinGPerKg * weightKg);
-  const proteinCal = protein * 4;
 
-  // Remaining calories split 30% fat / 70% carbs
-  const remainingCal = calories - proteinCal;
-  const fat = Math.round(remainingCal * 0.3 / 9);
-  const carbs = Math.round(remainingCal * 0.7 / 4);
+  // Healthy Fat: Vital for hormones (0.8g - 1g / kg)
+  const fatGPerKg = 0.9; // Vital for hormonal health as requested
+  const fat = Math.round(fatGPerKg * weightKg);
+
+  // Carbs fill the rest
+  const proteinCal = protein * 4;
+  const fatCal = fat * 9;
+  const remainingCal = Math.max(0, calories - proteinCal - fatCal);
+  const carbs = Math.round(remainingCal / 4);
 
   return {
     goal,

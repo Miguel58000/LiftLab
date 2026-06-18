@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore, UserProfile } from "@/store/useStore";
-import { translations } from "@/lib/i18n";
+import { translations, getMuscleLabel } from "@/lib/i18n";
 import { MuscleGroup, EXERCISE_DATABASE, getExerciseName } from "@/lib/exercises";
 import { generateSuggestedRoutine, SuggestedDay } from "@/lib/suggestions";
 import { Button } from "@/components/ui/button";
@@ -11,28 +11,13 @@ import { Activity, ChevronRight, Check, RefreshCcw } from "lucide-react";
 
 // Muscle groups grouped for display
 const MUSCLE_SECTIONS = [
-  { label: { en: "Chest", es: "Pecho" }, muscles: ["Chest", "Upper Chest"] as MuscleGroup[] },
-  { label: { en: "Back", es: "Espalda" }, muscles: ["Lats", "Upper Back", "Lower Back"] as MuscleGroup[] },
-  { label: { en: "Shoulders", es: "Hombros" }, muscles: ["Front Delts", "Lateral Delts", "Rear Delts"] as MuscleGroup[] },
-  { label: { en: "Arms", es: "Brazos" }, muscles: ["Biceps", "Triceps", "Forearms"] as MuscleGroup[] },
-  { label: { en: "Legs", es: "Piernas" }, muscles: ["Quads", "Hamstrings", "Glutes", "Adductors", "Calves"] as MuscleGroup[] },
-  { label: { en: "Core", es: "Core" }, muscles: ["Abs", "Obliques"] as MuscleGroup[] },
+  { label: { en: "Upper Body", es: "Tren Superior" }, muscles: ["Chest", "Lats", "Front Delts", "Biceps", "Triceps"] as MuscleGroup[] },
+  { label: { en: "Lower Body", es: "Tren Inferior" }, muscles: ["Quads", "Hamstrings", "Glutes", "Calves"] as MuscleGroup[] },
+  { label: { en: "Core", es: "Core" }, muscles: ["Abs"] as MuscleGroup[] },
+  { label: { en: "Others", es: "Otros" }, muscles: ["Forearms", "Traps", "Cardio"] as MuscleGroup[] },
 ];
 
-// Spanish muscle names
-const MUSCLE_NAMES_ES: Partial<Record<MuscleGroup, string>> = {
-  Chest: "Pecho", "Upper Chest": "Pecho Superior", Lats: "Dorsales",
-  "Upper Back": "Espalda Alta", "Lower Back": "Lumbar",
-  "Front Delts": "Deltoides Anterior", "Lateral Delts": "Deltoides Lateral",
-  "Rear Delts": "Deltoides Posterior", Biceps: "Bíceps", Triceps: "Tríceps",
-  Forearms: "Antebrazos", Quads: "Cuádriceps", Hamstrings: "Isquiosurales",
-  Glutes: "Glúteos", Adductors: "Aductores", Calves: "Gemelos",
-  Abs: "Abdominales", Obliques: "Oblicuos",
-};
 
-function getMuscleLabel(muscle: MuscleGroup, lang: "en" | "es") {
-  return lang === "es" ? (MUSCLE_NAMES_ES[muscle] ?? muscle) : muscle;
-}
 
 function MuscleChip({ muscle, selected, onToggle, lang }: {
   muscle: MuscleGroup; selected: boolean; onToggle: () => void; lang: "en" | "es";
@@ -40,11 +25,10 @@ function MuscleChip({ muscle, selected, onToggle, lang }: {
   return (
     <button
       onClick={onToggle}
-      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all select-none ${
-        selected
-          ? "bg-emerald-500 border-emerald-500 text-white dark:text-black shadow-md scale-105"
-          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-      }`}
+      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all select-none ${selected
+        ? "bg-emerald-500 border-emerald-500 text-white dark:text-black shadow-md scale-105"
+        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+        }`}
     >
       {selected && <Check className="inline w-3 h-3 mr-1 -mt-0.5" />}
       {getMuscleLabel(muscle, lang)}
@@ -82,7 +66,7 @@ function SuggestedRoutinePreview({ days, lang }: { days: SuggestedDay[]; lang: "
           <div key={i} className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-sm">{dayName}</h3>
-              <p className="text-xs text-zinc-500">{day.exercises.length} exercises · 4 sets each</p>
+              <p className="text-xs text-zinc-500">{day.exercises.length} {lang === 'es' ? 'ejercicios · 4 series c/u' : 'exercises · 4 sets each'}</p>
             </div>
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {day.exercises.map((ex, j) => {

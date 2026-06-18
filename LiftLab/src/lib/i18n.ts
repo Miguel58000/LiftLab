@@ -390,3 +390,22 @@ export const translations = {
     settings_unit_distance_mi: "Millas (mi)",
   }
 };
+
+// ─── Centralised muscle-name helper ───────────────────────────────────────────
+// Single source of truth for all files that need to translate MuscleGroup keys.
+// Previously duplicated in analyzer.ts, onboarding/page.tsx, and tracker/page.tsx.
+export const MUSCLE_NAMES_ES: Record<string, string> = {
+  Chest: "Pecho", "Upper Chest": "Pecho Superior", Lats: "Dorsales",
+  "Upper Back": "Espalda Alta", "Lower Back": "Lumbar", Traps: "Trapecio",
+  "Front Delts": "Deltoides Anterior", "Lateral Delts": "Deltoides Lateral",
+  "Rear Delts": "Deltoides Posterior", Biceps: "Bíceps", Triceps: "Tríceps",
+  Forearms: "Antebrazos", Quads: "Cuádriceps", Hamstrings: "Isquiosurales",
+  Glutes: "Glúteos", Calves: "Gemelos", Abs: "Abdominales", Obliques: "Oblicuos",
+  Adductors: "Aductores", Serratus: "Serrato",
+  Tibialis: "Tibial", Brachialis: "Braquial", Neck: "Cuello",
+  Cardio: "Cardio", Psoas: "Psoas",
+};
+
+export function getMuscleLabel(muscle: string, lang: "en" | "es"): string {
+  return lang === "es" ? (MUSCLE_NAMES_ES[muscle] ?? muscle) : muscle;
+}

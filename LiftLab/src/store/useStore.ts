@@ -45,11 +45,24 @@ export interface WorkoutSession {
   efficiencyScore: number;
 }
 
+export interface ActiveSession {
+  dayId: string;
+  dayName: string;
+  startTime: string;
+  exercises: LoggedExercise[];
+  elapsedSecs: number;
+}
+
 export interface UserProfile {
   strengths: MuscleGroup[];
   goals: MuscleGroup[];
   createdAt: string;
   lastReviewAt: string;
+  // New nutritional fields
+  trainingHoursWeekly?: number;
+  trainingObjective?: 'hypertrophy' | 'strength' | 'endurance';
+  proteinPreferenceGPerKg?: number;
+
   heightCm?: number;
   weightKg?: number;
   targetMacros?: {
@@ -92,9 +105,13 @@ interface AppState {
   addExerciseToDay: (dayId: string, exercise: Omit<RoutineExercise, 'id'>) => void;
   updateExerciseInDay: (dayId: string, exerciseId: string, updates: Partial<RoutineExercise>) => void;
   updateExerciseGlobal: (exerciseId: string, updates: Partial<RoutineExercise>) => void;
+  reorderExerciseInDay: (dayId: string, oldIndex: number, newIndex: number) => void;
   removeExerciseFromDay: (dayId: string, exerciseId: string) => void;
   removeExerciseGlobal: (exerciseId: string) => void;
   loadSuggestedDays: (days: WorkoutDay[]) => void;
+
+  activeSession: ActiveSession | null;
+  setActiveSession: (session: ActiveSession | null) => void;
   loadAllState: (data: Partial<Pick<AppState, 'language' | 'weightUnit' | 'distanceUnit' | 'profile' | 'days' | 'customExercises' | 'workoutHistory'>>) => void;
 
   workoutHistory: WorkoutSession[];
@@ -170,6 +187,19 @@ export const useStore = create<AppState>()(
           return day;
         })
       })),
+
+      reorderExerciseInDay: (dayId, oldIndex, newIndex) => set((state) => ({
+        days: (state.days || []).map((day) => {
+          if (day.id !== dayId) return day;
+          const newExercises = [...day.exercises];
+          const [removed] = newExercises.splice(oldIndex, 1);
+          newExercises.splice(newIndex, 0, removed);
+          return { ...day, exercises: newExercises };
+        })
+      })),
+
+      activeSession: null,
+      setActiveSession: (session) => set({ activeSession: session }),
 
       /** Actualiza un ejercicio SOLO en un día */
       updateExerciseInDay: (dayId, exerciseId, updates) => set((state) => ({

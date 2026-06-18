@@ -8,27 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Dumbbell, Clock, Repeat, Hash, Pencil } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { generateSuggestedRoutine, getPersonalizedSuggestions, SuggestedDay } from "@/lib/suggestions";
 import { analyzeRoutine } from "@/lib/analyzer";
-import { ChevronRight, Activity, Sparkles } from "lucide-react";
+import { ChevronRight, Activity, Sparkles, ChevronUp, ChevronDown, Search } from "lucide-react";
 
 export const MUSCLE_GROUPS: MuscleGroup[] = [
-  'Adductors', 'Chest', 'Upper Chest', 'Lats', 'Upper Back', 'Lower Back', 
-  'Traps', 'Front Delts', 'Lateral Delts', 'Rear Delts', 'Serratus', 
-  'Biceps', 'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes', 
+  'Adductors', 'Chest', 'Upper Chest', 'Lats', 'Upper Back', 'Lower Back',
+  'Traps', 'Front Delts', 'Lateral Delts', 'Rear Delts', 'Serratus',
+  'Biceps', 'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes',
   'Calves', 'Abs', 'Obliques',
-  'Tibialis', 
+  'Tibialis',
   'Brachialis',
   'Neck',
   'Cardio',
   'Psoas'
 ];
-
-
 
 export default function BuilderPage() {
   const [mounted, setMounted] = useState(false);
@@ -46,6 +44,7 @@ export default function BuilderPage() {
   const updateExerciseGlobal = useStore((state) => state.updateExerciseGlobal);
   const updateCustomExerciseDef = useStore((state) => state.updateCustomExerciseDef);
   const updateExercisesByExerciseId = useStore((state) => state.updateExercisesByExerciseId);
+  const reorderExerciseInDay = useStore((state) => state.reorderExerciseInDay);
   const removeExerciseGlobal = useStore((state) => state.removeExerciseGlobal);
   const language = useStore((state) => state.language) as "en" | "es";
   const customExercises = useStore((state) => state.customExercises || []);
@@ -102,7 +101,7 @@ export default function BuilderPage() {
     if (source) {
       copyTriggerRef.current = true;
       addDay(`${source.name} (${language === 'es' ? 'copia' : 'copy'})`, source.exercises);
-      
+
       const timer = setTimeout(() => {
         copyTriggerRef.current = false;
         setCopySelectedDayId('');
@@ -124,7 +123,21 @@ export default function BuilderPage() {
   const [editingMusclesSecondaries, setEditingMusclesSecondaries] = useState<MuscleGroup[]>([]);
   const [editingCategory, setEditingCategory] = useState<string>("");
 
-  console.log("BuilderPage rendering. Current hook days:", days);
+  const allExercises = [...EXERCISE_DATABASE, ...customExercises];
+
+  // Rules of Hooks: These must be declared before any conditional returns
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | "all">("all");
+
+  const filteredExercises = useMemo(() => {
+    return allExercises
+      .filter(ex => {
+        const matchesSearch = getExerciseName(ex, language).toLowerCase().includes(exerciseSearch.toLowerCase());
+        const matchesMuscle = muscleFilter === "all" || ex.primaryMuscle === muscleFilter;
+        return matchesSearch && matchesMuscle;
+      })
+      .sort((a, b) => a.primaryMuscle.localeCompare(b.primaryMuscle) || getExerciseName(a, language).localeCompare(getExerciseName(b, language)));
+  }, [allExercises, exerciseSearch, muscleFilter, language]);
 
   if (!mounted) {
     return (
@@ -135,13 +148,13 @@ export default function BuilderPage() {
     );
   }
 
-  const allExercises = [...EXERCISE_DATABASE, ...customExercises];
+  console.log("BuilderPage rendering. Current hook days:", days);
 
   const allMuscles = MUSCLE_GROUPS;
   const handleUpdateProfile = (
-    primStrength: MuscleGroup | "", 
-    secStrength: MuscleGroup | "", 
-    primGoal: MuscleGroup | "", 
+    primStrength: MuscleGroup | "",
+    secStrength: MuscleGroup | "",
+    primGoal: MuscleGroup | "",
     secGoal: MuscleGroup | ""
   ) => {
     const strengths = [primStrength, secStrength].filter(Boolean) as MuscleGroup[];
@@ -314,22 +327,20 @@ export default function BuilderPage() {
               <button
                 type="button"
                 onClick={() => setDayCopyMode('new')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  dayCopyMode === 'new'
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-700'
-                }`}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${dayCopyMode === 'new'
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-700'
+                  }`}
               >
                 {language === 'es' ? 'Nuevo Día' : 'New Day'}
               </button>
               <button
                 type="button"
                 onClick={() => setDayCopyMode('copy')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  dayCopyMode === 'copy'
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-700'
-                }`}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${dayCopyMode === 'copy'
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-700'
+                  }`}
               >
                 {language === 'es' ? 'Copiar Día' : 'Copy Day'}
               </button>
@@ -337,11 +348,11 @@ export default function BuilderPage() {
 
             {dayCopyMode === 'new' ? (
               <>
-                <Input 
+                <Input
                   id="new-day-name-input"
                   name="new-day-name-input"
-                  placeholder={t.build_add_day_placeholder} 
-                  value={newDayName} 
+                  placeholder={t.build_add_day_placeholder}
+                  value={newDayName}
                   onChange={(e) => setNewDayName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -352,13 +363,13 @@ export default function BuilderPage() {
                   }}
                   className="flex-1 sm:w-48 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
                 />
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={() => {
                     const name = newDayName.trim() || (language === "es" ? `Día ${days.length + 1}` : `Day ${days.length + 1}`);
                     addDay(name);
                     setNewDayName("");
-                  }} 
+                  }}
                   className="bg-emerald-500 hover:bg-emerald-600 text-white dark:text-black shrink-0"
                 >
                   <Plus className="w-4 h-4 mr-2" /> {t.build_add_day_btn}
@@ -530,10 +541,10 @@ export default function BuilderPage() {
             <Card key={day.id} className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-xl overflow-hidden">
               <CardHeader className="bg-zinc-50 dark:bg-zinc-950/50 border-b border-zinc-200 dark:border-zinc-800 py-4 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Input 
+                  <Input
                     id={`day-name-${day.id}`}
                     name={`day-name-${day.id}`}
-                    value={day.name} 
+                    value={day.name}
                     onChange={(e) => updateDayName(day.id, e.target.value)}
                     className="h-8 w-48 font-semibold text-lg bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
                   />
@@ -545,7 +556,7 @@ export default function BuilderPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-                  {day.exercises.map((ex) => {
+                  {day.exercises.map((ex, exIdx) => {
                     const exerciseDef = allExercises.find(e => e.id === ex.exerciseId);
                     const effectivePrimary: MuscleGroup = ex.primaryMuscleOverride || (exerciseDef ? exerciseDef.primaryMuscle : "Chest" as MuscleGroup);
                     const effectiveSecondaries: MuscleGroup[] = ex.secondaryMusclesOverride || (exerciseDef ? exerciseDef.secondaryMuscles : []);
@@ -561,7 +572,7 @@ export default function BuilderPage() {
                               value={editingName}
                               onChange={e => setEditingName(e.target.value)}
                               onKeyDown={e => {
-                                if (e.key === 'Enter') {} // handled by parent button
+                                if (e.key === 'Enter') { } // handled by parent button
                               }}
                               className="h-8 flex-1 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-200"
                             />
@@ -591,7 +602,7 @@ export default function BuilderPage() {
                                 }}
                               >
                                 <option value="" disabled>{language === 'es' ? 'Seleccionar...' : 'Select...'}</option>
-                              {allMuscles.map((m: MuscleGroup) => (
+                                {allMuscles.map((m: MuscleGroup) => (
                                   <option key={m} value={m}>{getMuscleLabel(m, language)}</option>
                                 ))}
                               </select>
@@ -611,13 +622,12 @@ export default function BuilderPage() {
                                       type="button"
                                       disabled={sameAsPrimary}
                                       onClick={() => toggleMuscle(editingMusclesSecondaries, m, setEditingMusclesSecondaries)}
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border transition-all cursor-pointer ${
-                                        isSelected
-                                          ? 'bg-emerald-500 text-white border-emerald-500 dark:text-black'
-                                          : sameAsPrimary
-                                            ? 'bg-zinc-50 dark:bg-zinc-900 text-zinc-300 dark:text-zinc-600 border-zinc-100 dark:border-zinc-800 cursor-not-allowed opacity-50'
-                                            : 'bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
-                                      }`}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border transition-all cursor-pointer ${isSelected
+                                        ? 'bg-emerald-500 text-white border-emerald-500 dark:text-black'
+                                        : sameAsPrimary
+                                          ? 'bg-zinc-50 dark:bg-zinc-900 text-zinc-300 dark:text-zinc-600 border-zinc-100 dark:border-zinc-800 cursor-not-allowed opacity-50'
+                                          : 'bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
+                                        }`}
                                     >
                                       {getMuscleLabel(m, language)}
                                     </button>
@@ -635,8 +645,8 @@ export default function BuilderPage() {
                                 value={editingCategory}
                                 onChange={e => setEditingCategory(e.target.value)}
                               >
-                                {(editingMusclesPrimary === 'Cardio' 
-                                  ? ['Soft Cardio', 'Moderate Cardio', 'Intense Cardio'] 
+                                {(editingMusclesPrimary === 'Cardio'
+                                  ? ['Soft Cardio', 'Moderate Cardio', 'Intense Cardio']
                                   : ['Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Plyometrics']
                                 ).map(cat => (
                                   <option key={cat} value={cat}>{getCategoryLabel(cat, language)}</option>
@@ -651,8 +661,8 @@ export default function BuilderPage() {
                               <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1.5 font-normal">
                                 ({language === 'es' ? 'Secundarios: ' : 'Secondary: '}
                                 {effectiveSecondaries.map((m) => getMuscleLabel(m, language)).join(', ')}
-                                <span className="text-[10px] opacity-75 font-mono ml-1 font-bold"> 
-                              {exerciseDef?.category?.includes('Cardio') ? '' : (language === 'es' ? ' +0.5 series/serie' : ' +0.5 sets/set')}
+                                <span className="text-[10px] opacity-75 font-mono ml-1 font-bold">
+                                  {exerciseDef?.category?.includes('Cardio') ? '' : (language === 'es' ? ' +0.5 series/serie' : ' +0.5 sets/set')}
                                 </span>
                                 )
                               </span>
@@ -667,8 +677,8 @@ export default function BuilderPage() {
                             <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-950 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800">
                               <Hash className="w-3 h-3" /> {isCardio ? (language === 'es' ? 'Intervalos' : 'Intervals') : t.build_sets}
                             </div>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="1" max="10"
                               value={ex.sets}
                               onChange={(e) => updateExerciseInDay(day.id, ex.id, { sets: parseInt(e.target.value) || 0 })}
@@ -676,14 +686,14 @@ export default function BuilderPage() {
                               disabled={isEditing}
                             />
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-950 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800">
                               <Repeat className="w-3 h-3" /> {isCardio ? 'Km' : t.build_reps}
                             </div>
-                            <Input 
-                              type="number" 
-                              min={isCardio ? "0.1" : "1"} 
+                            <Input
+                              type="number"
+                              min={isCardio ? "0.1" : "1"}
                               step={isCardio ? "0.5" : "1"}
                               max="100"
                               value={ex.reps}
@@ -698,7 +708,7 @@ export default function BuilderPage() {
                               {isCardio ? <Clock className="w-3 h-3" /> : <Dumbbell className="w-3 h-3" />} {isCardio ? (language === 'es' ? 'Tiempo (HH:MM)' : 'Time (HH:MM)') : (language === 'es' ? 'Peso (kg)' : 'Weight (kg)')}
                             </div>
                             {isCardio ? (
-                              <Input 
+                              <Input
                                 type="text"
                                 placeholder="HH:MM"
                                 value={`${Math.floor((ex.weightKg || 0) / 3600)}:${Math.floor(((ex.weightKg || 0) % 3600) / 60).toString().padStart(2, '0')}`}
@@ -716,9 +726,9 @@ export default function BuilderPage() {
                                 disabled={isEditing}
                               />
                             ) : (
-                              <Input 
-                                type="number" 
-                                min="0" 
+                              <Input
+                                type="number"
+                                min="0"
                                 step="2.5"
                                 value={ex.weightKg || 0}
                                 onChange={(e) => {
@@ -735,8 +745,8 @@ export default function BuilderPage() {
                             <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-950 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800">
                               <Clock className="w-3 h-3" /> {t.build_rest}
                             </div>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="0" step="15"
                               value={ex.restSecs}
                               onChange={(e) => updateExerciseInDay(day.id, ex.id, { restSecs: parseInt(e.target.value) || 0 })}
@@ -750,6 +760,14 @@ export default function BuilderPage() {
                               <Button variant="ghost" size="icon" onClick={() => startEditExFull(day, ex)} className="text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-400/10">
                                 <Pencil className="w-4 h-4" />
                               </Button>
+                              <div className="flex items-center">
+                                <Button variant="ghost" size="icon" disabled={exIdx === 0} onClick={() => reorderExerciseInDay(day.id, exIdx, exIdx - 1)} className="h-8 w-8 text-zinc-400">
+                                  <ChevronUp className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" disabled={exIdx === day.exercises.length - 1} onClick={() => reorderExerciseInDay(day.id, exIdx, exIdx + 1)} className="h-8 w-8 text-zinc-400">
+                                  <ChevronDown className="w-4 h-4" />
+                                </Button>
+                              </div>
                               <Button variant="ghost" size="icon" onClick={() => removeExerciseGlobal(ex.id)} className="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 ml-auto">
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -760,9 +778,28 @@ export default function BuilderPage() {
                     );
                   })}
                 </div>
-                
+
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-2">
-                  <select 
+                  <div className="flex flex-1 gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+                      <Input
+                        placeholder={language === 'es' ? 'Buscar...' : 'Search...'}
+                        className="pl-9 h-10"
+                        value={exerciseSearch}
+                        onChange={(e) => setExerciseSearch(e.target.value)}
+                      />
+                    </div>
+                    <select
+                      className="w-32 h-10 px-2 rounded-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs"
+                      value={muscleFilter}
+                      onChange={(e) => setMuscleFilter(e.target.value as MuscleGroup)}
+                    >
+                      <option value="all">{language === 'es' ? 'Todos' : 'All'}</option>
+                      {MUSCLE_GROUPS.map(m => <option key={m} value={m}>{getMuscleLabel(m, language)}</option>)}
+                    </select>
+                  </div>
+                  <select
                     className="w-full sm:flex-1 h-10 px-3 rounded-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                     onChange={(e) => {
                       const exId = e.target.value;
@@ -783,11 +820,15 @@ export default function BuilderPage() {
                     defaultValue=""
                   >
                     <option value="" disabled>{t.build_add_ex_placeholder}</option>
-                    {allExercises.map(ex => (
-                      <option key={ex.id} value={ex.id}>
-                        {getExerciseName(ex, language)} ({getMuscleLabel(ex.primaryMuscle, language)})
-                      </option>
-                    ))}
+                    {filteredExercises.length === 0 ? (
+                      <option disabled>{language === 'es' ? 'No hay ejercicios que cumplan con el filtro' : 'No exercises match the filter'}</option>
+                    ) : (
+                      filteredExercises.map((ex: ExerciseDef) => (
+                        <option key={ex.id} value={ex.id}>
+                          {getExerciseName(ex, language)} ({getMuscleLabel(ex.primaryMuscle, language)})
+                        </option>
+                      ))
+                    )}
                   </select>
 
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -808,7 +849,7 @@ export default function BuilderPage() {
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="muscle">{t.dialog_ex_primary}</Label>
-                          <select 
+                          <select
                             id="muscle"
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-zinc-950 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 text-zinc-900 dark:text-zinc-50"
                             value={customExMuscle}
@@ -824,23 +865,23 @@ export default function BuilderPage() {
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="category">{t.dialog_ex_category}</Label>
-                          <select 
+                          <select
                             id="category"
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             value={customExCategory}
                             onChange={e => setCustomExCategory(e.target.value)}
                           >
-                          {(customExMuscle === 'Cardio' 
-                            ? ['Soft Cardio', 'Moderate Cardio', 'Intense Cardio'] 
-                            : ['Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Plyometrics']
-                          ).map(cat => (
-                            <option key={cat} value={cat}>{getCategoryLabel(cat, language)}</option>
-                          ))}
+                            {(customExMuscle === 'Cardio'
+                              ? ['Soft Cardio', 'Moderate Cardio', 'Intense Cardio']
+                              : ['Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Plyometrics']
+                            ).map(cat => (
+                              <option key={cat} value={cat}>{getCategoryLabel(cat, language)}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="grip">{language === 'es' ? 'Tipo de Agarre' : 'Grip Type'}</Label>
-                          <select 
+                          <select
                             id="grip"
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             value={customExGrip}
@@ -865,15 +906,14 @@ export default function BuilderPage() {
                                   key={m}
                                   type="button"
                                   onClick={() => {
-                                    setCustomExSecondary((prev: MuscleGroup[]) => 
+                                    setCustomExSecondary((prev: MuscleGroup[]) =>
                                       prev.includes(m) ? prev.filter((x: MuscleGroup) => x !== m) : [...prev, m]
                                     );
                                   }}
-                                  className={`px-2 py-1 rounded-md text-[10px] font-semibold border transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? 'bg-emerald-500 text-white border-emerald-500 dark:text-black shadow-xs' 
-                                      : 'bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
-                                  }`}
+                                  className={`px-2 py-1 rounded-md text-[10px] font-semibold border transition-all cursor-pointer ${isSelected
+                                    ? 'bg-emerald-500 text-white border-emerald-500 dark:text-black shadow-xs'
+                                    : 'bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
+                                    }`}
                                 >
                                   {getMuscleLabel(m, language)}
                                 </button>
@@ -905,8 +945,8 @@ export default function BuilderPage() {
               {language === 'es' ? 'Asistente de Rutina Inteligente' : 'Smart Routine Assistant'}
             </DialogTitle>
             <DialogDescription>
-              {language === 'es' 
-                ? 'Optimizá tu rutina actual o generá una nueva según tus objetivos.' 
+              {language === 'es'
+                ? 'Optimizá tu rutina actual o generá una nueva según tus objetivos.'
                 : 'Optimize your current routine or generate a new one based on your goals.'}
             </DialogDescription>
           </DialogHeader>
@@ -914,8 +954,8 @@ export default function BuilderPage() {
           {assistantStep === 0 && (
             <div className="space-y-4 py-4">
               <p className="text-sm text-zinc-500">
-                {language === 'es' 
-                  ? '¿Cuántos días por semana querés entrenar?' 
+                {language === 'es'
+                  ? '¿Cuántos días por semana querés entrenar?'
                   : 'How many days per week do you want to train?'}
               </p>
               <div className="flex gap-2 justify-center">
@@ -924,11 +964,10 @@ export default function BuilderPage() {
                     key={d}
                     onClick={() => setAssistantDays(d)}
                     type="button"
-                    className={`w-12 h-12 rounded-xl border text-lg font-bold transition-all ${
-                      assistantDays === d
-                        ? 'bg-emerald-500 border-emerald-500 text-white dark:text-black shadow-md scale-105'
-                        : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500'
-                    }`}
+                    className={`w-12 h-12 rounded-xl border text-lg font-bold transition-all ${assistantDays === d
+                      ? 'bg-emerald-500 border-emerald-500 text-white dark:text-black shadow-md scale-105'
+                      : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500'
+                      }`}
                   >
                     {d}
                   </button>
@@ -949,12 +988,12 @@ export default function BuilderPage() {
                   {language === 'es' ? 'Tus Puntos Fuertes' : 'Your Strong Points'}
                 </h3>
                 <p className="text-xs text-zinc-500 mb-4">
-                  {language === 'es' 
-                    ? 'Elegí qué grupos musculares considerás tus puntos fuertes principales y secundarios.' 
+                  {language === 'es'
+                    ? 'Elegí qué grupos musculares considerás tus puntos fuertes principales y secundarios.'
                     : 'Choose which muscle groups you consider your primary and secondary strong points.'}
                 </p>
               </div>
-              
+
               <div className="space-y-4 text-left">
                 {/* Primary Strength Select */}
                 <div className="grid gap-2">
@@ -1005,9 +1044,9 @@ export default function BuilderPage() {
                 <Button variant="outline" onClick={() => setAssistantStep(0)} className="border-zinc-200 dark:border-zinc-800">
                   {language === 'es' ? 'Atrás' : 'Back'}
                 </Button>
-                <Button 
+                <Button
                   disabled={!primaryStrength}
-                  onClick={() => setAssistantStep(2)} 
+                  onClick={() => setAssistantStep(2)}
                   className="bg-emerald-500 hover:bg-emerald-600 text-white dark:text-black disabled:opacity-50"
                 >
                   {language === 'es' ? 'Siguiente' : 'Next'} <ChevronRight className="w-4 h-4 ml-1" />
@@ -1023,12 +1062,12 @@ export default function BuilderPage() {
                   {language === 'es' ? 'Tus Puntos Débiles (Objetivos)' : 'Your Weak Points (Goals)'}
                 </h3>
                 <p className="text-xs text-zinc-500 mb-4">
-                  {language === 'es' 
-                    ? 'Elegí qué grupos musculares considerás tus puntos débiles principales y secundarios a priorizar.' 
+                  {language === 'es'
+                    ? 'Elegí qué grupos musculares considerás tus puntos débiles principales y secundarios a priorizar.'
                     : 'Choose which muscle groups you consider your primary and secondary weak points to prioritize.'}
                 </p>
               </div>
-              
+
               <div className="space-y-4 text-left">
                 {/* Primary Weak Point Select */}
                 <div className="grid gap-2">
@@ -1079,9 +1118,9 @@ export default function BuilderPage() {
                 <Button variant="outline" onClick={() => setAssistantStep(1)} className="border-zinc-200 dark:border-zinc-800">
                   {language === 'es' ? 'Atrás' : 'Back'}
                 </Button>
-                <Button 
+                <Button
                   disabled={!primaryGoal}
-                  onClick={handleGenerate} 
+                  onClick={handleGenerate}
                   className="bg-emerald-500 hover:bg-emerald-600 text-white dark:text-black disabled:opacity-50"
                 >
                   {language === 'es' ? 'Generar Sugerencias' : 'Generate Suggestions'} <ChevronRight className="w-4 h-4 ml-1" />
@@ -1100,14 +1139,14 @@ export default function BuilderPage() {
                 </h3>
                 {days.length === 0 ? (
                   <p className="text-xs text-zinc-500 italic">
-                    {language === 'es' 
-                      ? 'No tenés una rutina ingresada en el builder todavía para comparar.' 
+                    {language === 'es'
+                      ? 'No tenés una rutina ingresada en el builder todavía para comparar.'
                       : 'You do not have a routine in the builder yet to compare.'}
                   </p>
                 ) : personalizedSuggestions.length === 0 ? (
                   <p className="text-xs text-zinc-500 italic">
-                    {language === 'es' 
-                      ? '¡Tu rutina ingresada se ve excelente! No se detectaron desbalances.' 
+                    {language === 'es'
+                      ? '¡Tu rutina ingresada se ve excelente! No se detectaron desbalances.'
                       : 'Your routine looks great! No imbalances detected.'}
                   </p>
                 ) : (
@@ -1128,11 +1167,11 @@ export default function BuilderPage() {
                   {language === 'es' ? 'Nueva Rutina Sugerida:' : 'New Suggested Routine:'}
                 </h3>
                 <p className="text-xs text-zinc-500 mb-3">
-                  {language === 'es' 
-                    ? `Hemos optimizado una rutina completa de ${assistantDays} días enfocada en tus objetivos.` 
+                  {language === 'es'
+                    ? `Hemos optimizado una rutina completa de ${assistantDays} días enfocada en tus objetivos.`
                     : `We have optimized a complete ${assistantDays}-day routine focused on your goals.`}
                 </p>
-                
+
                 <div className="max-h-40 overflow-y-auto space-y-2 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 bg-zinc-50 dark:bg-zinc-900/50">
                   {previewSuggested.map((day, dIdx) => (
                     <div key={dIdx} className="text-xs pb-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0">

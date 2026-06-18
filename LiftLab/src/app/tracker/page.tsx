@@ -6,10 +6,11 @@ import { EXERCISE_DATABASE, getExerciseName, MuscleGroup, ExerciseDef } from "@/
 import { translations } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,14 +63,14 @@ function getVolumeAlerts(currentSession: WorkoutSession, history: WorkoutSession
   const sameDayHistory = history
     .filter(s => s.dayId === currentSession.dayId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
+
   // Buscamos la posición de la sesión actual en el historial para mirar hacia atrás
   const currIdx = sameDayHistory.findIndex(s => s.id === currentSession.id);
   const pastSessions = currIdx === -1 ? sameDayHistory : sameDayHistory.slice(currIdx + 1);
-  
+
   const alerts: string[] = [];
   const currVol = getSessionVolume(currentSession, allExercises);
-  
+
   if (currVol === 0 || pastSessions.length === 0) return alerts;
 
   // 1. Check 3 consecutive drops
@@ -77,18 +78,18 @@ function getVolumeAlerts(currentSession: WorkoutSession, history: WorkoutSession
     const v1 = getSessionVolume(pastSessions[0], allExercises);
     const v2 = getSessionVolume(pastSessions[1], allExercises);
     const v3 = getSessionVolume(pastSessions[2], allExercises);
-    
+
     const t1 = getTrend(currVol, v1);
     const t2 = getTrend(v1, v2);
     const t3 = getTrend(v2, v3);
 
     if (t1 === 'down' && t2 === 'down' && t3 === 'down') {
-      alerts.push(lang === 'es' 
+      alerts.push(lang === 'es'
         ? "Se detectó una caída significativa en el volumen por 3 entrenamientos consecutivos. Considera una semana de descarga (deload) o revisa tu descanso y nutrición."
         : "Significant volume drop detected for 3 consecutive sessions. Consider a deload week or review your rest and nutrition.");
     }
   }
-  
+
   // 2. Plateau check (2 weeks horizontal)
   const twoWeeksMs = 14 * 86400000;
   const currDate = new Date(currentSession.date).getTime();
@@ -96,12 +97,12 @@ function getVolumeAlerts(currentSession: WorkoutSession, history: WorkoutSession
     const d = new Date(s.date).getTime();
     return d <= currDate && (currDate - d) <= twoWeeksMs;
   });
-  
+
   if (lastTwoWeeks.length >= 3) { // Al menos 3 sesiones en 2 semanas para ser una tendencia real
     let alwaysNeutral = true;
     for (let i = 0; i < lastTwoWeeks.length - 1; i++) {
       const vC = getSessionVolume(lastTwoWeeks[i], allExercises);
-      const vP = getSessionVolume(lastTwoWeeks[i+1], allExercises);
+      const vP = getSessionVolume(lastTwoWeeks[i + 1], allExercises);
       if (getTrend(vC, vP) !== 'neutral') {
         alwaysNeutral = false;
         break;
@@ -113,7 +114,7 @@ function getVolumeAlerts(currentSession: WorkoutSession, history: WorkoutSession
         : "You're in a plateau (stable volume for 2 weeks). Suggestions: vary rep ranges, change exercise order, or slightly reduce rest times.");
     }
   }
-  
+
   return alerts;
 }
 
@@ -182,7 +183,7 @@ type PRType = 'weight' | 'reps' | 'volume' | 'km' | 'speed';
 
 function checkPRs(session: WorkoutSession, history: WorkoutSession[], allExercises: ExerciseDef[]) {
   const prs: Record<string, PRType[]> = {};
-  
+
   session.exercises.forEach(ex => {
     const def = allExercises.find(e => e.id === ex.exerciseId);
     const isBodyweight = def?.category === 'Bodyweight';
@@ -194,7 +195,7 @@ function checkPRs(session: WorkoutSession, history: WorkoutSession[], allExercis
 
     // 1. Weight PR (Peso levantado máximo en una serie)
     const currentMaxWeight = Math.max(...currentSets.map(s => s.weightKg), 0);
-    
+
     // 2. Volume PR (Peso total/Volumen del ejercicio en la sesión)
     const currentTotalVolume = currentSets.reduce((acc, s) => acc + (s.reps * s.weightKg), 0);
 
@@ -225,7 +226,7 @@ function checkPRs(session: WorkoutSession, history: WorkoutSession[], allExercis
       if (currMaxKm > maxKm && currMaxKm > 0) types.add('km');
       if (currMaxSpeed > maxSpeed && currMaxSpeed > 0) types.add('speed');
       if (currTotalKm > maxTotalKm && currTotalKm > 0) types.add('volume');
-      
+
       if (types.size > 0) prs[ex.exerciseId] = Array.from(types);
       return;
     }
@@ -301,7 +302,7 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
 
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
-  
+
   const monthName = viewDate.toLocaleString(language === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' });
 
   const sessionsMap = useMemo(() => {
@@ -350,7 +351,7 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={onBack} className="text-zinc-500">
-          <ChevronLeft className="w-4 h-4 mr-1" /> 
+          <ChevronLeft className="w-4 h-4 mr-1" />
           {language === 'es' ? 'Volver' : 'Back'}
         </Button>
         <h2 className="text-xl font-bold capitalize">{monthName}</h2>
@@ -361,7 +362,7 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
       </div>
 
       <div className="grid grid-cols-7 gap-2 mb-8">
-        {['D','L','M','X','J','V','S'].map(d => <div key={d} className="text-center text-[10px] font-bold text-zinc-400 py-2">{d}</div>)}
+        {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(d => <div key={d} className="text-center text-[10px] font-bold text-zinc-400 py-2">{d}</div>)}
         {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} />)}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
@@ -385,7 +386,7 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
               <div>
                 <CardTitle className="text-lg">{selectedSession.dayName}</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs text-zinc-500">{new Date(selectedSession.date).toLocaleDateString()} · {Math.round(selectedSession.durationSecs/60)}m</p>
+                  <p className="text-xs text-zinc-500">{new Date(selectedSession.date).toLocaleDateString()} · {Math.round(selectedSession.durationSecs / 60)}m</p>
                   <div className="flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
                     {formatWeight(getSessionVolume(selectedSession, [...EXERCISE_DATABASE, ...customExercises]), weightUnit)}
                     <TrendArrow trend={getTrend(getSessionVolume(selectedSession, [...EXERCISE_DATABASE, ...customExercises]), getPrevSessionVolume(selectedSession))} />
@@ -409,15 +410,15 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
               const completedSets = ex.loggedSets.filter(s => s.completed);
               if (completedSets.length === 0) return null;
               const isCardio = def?.category.includes('Cardio');
-              
+
               // Cálculos de métricas
               const vol = completedSets.reduce((a, b) => a + (b.reps * b.weightKg), 0);
               const reps = completedSets.reduce((a, b) => a + b.reps, 0);
               const kgPerRep = reps > 0 ? (vol / reps) : 0;
-              
+
               const speeds = completedSets.map(s => s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0);
               const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
-              
+
               const getCardioType = (spd: number) => {
                 if (spd >= 10) return language === 'es' ? 'Avanzado' : 'Intense';
                 if (spd >= 6) return language === 'es' ? 'Moderado' : 'Moderate';
@@ -439,7 +440,7 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
                     </div>
                     <div className="text-right flex items-center gap-1.5">
                       <span className="text-[10px] text-zinc-500 font-mono font-bold leading-none">
-                        {isCardio 
+                        {isCardio
                           ? `${formatDistance(reps, distanceUnit)} total`
                           : formatWeight(vol, weightUnit)}
                       </span>
@@ -451,8 +452,8 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
                       const _speed = s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0;
                       return (
                         <div key={si} className="text-[10px] px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400">
-                          {isCardio 
-                            ? `${formatDistance(s.reps, distanceUnit, false)} ${distanceUnit} @ ${Math.floor(s.weightKg/3600)}:${Math.floor((s.weightKg%3600)/60).toString().padStart(2,'0')} (${formatSpeed(s.reps, s.weightKg, distanceUnit)})` 
+                          {isCardio
+                            ? `${formatDistance(s.reps, distanceUnit, false)} ${distanceUnit} @ ${Math.floor(s.weightKg / 3600)}:${Math.floor((s.weightKg % 3600) / 60).toString().padStart(2, '0')} (${formatSpeed(s.reps, s.weightKg, distanceUnit)})`
                             : `${s.reps} × ${formatWeight(s.weightKg, weightUnit)}`}
                         </div>
                       );
@@ -487,7 +488,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
   const allExercises = useMemo(() => [...EXERCISE_DATABASE, ...customExercises], [customExercises]);
   const selectedDef = allExercises.find(e => e.id === selectedExId);
   const isCardio = selectedDef?.category.includes('Cardio');
-  
+
   const exerciseOptions = useMemo(() => {
     const ids = new Set<string>();
     history.forEach(s => s.exercises.forEach(e => ids.add(e.exerciseId)));
@@ -497,7 +498,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
         id,
         name: def ? getExerciseName(def, language) : id
       };
-    }).sort((a,b) => a.name.localeCompare(b.name));
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }, [history, allExercises, language]);
 
   const chartData = useMemo(() => {
@@ -517,7 +518,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
             distance: getDistanceInUnit(totalDist, distanceUnit),
             time: totalSecs / 60, // en minutos para el gráfico
             speed: getDistanceInUnit(avgSpeed, distanceUnit),
-            speedDev: completed.length > 1 
+            speedDev: completed.length > 1
               ? getDistanceInUnit(Math.sqrt(completed.map(ls => ls.weightKg > 0 ? (ls.reps / (ls.weightKg / 3600)) : 0).reduce((acc, s) => acc + Math.pow(s - avgSpeed, 2), 0) / completed.length), distanceUnit)
               : 0,
             sets: completed.length,
@@ -531,7 +532,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
         const totalVol = completed.reduce((acc, ls) => acc + (ls.reps * ls.weightKg), 0);
         const maxWeight = Math.max(...completed.map(ls => ls.weightKg), 0);
         const totalReps = completed.reduce((acc, ls) => acc + ls.reps, 0);
-        
+
         return {
           date: new Date(s.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }),
           volume: getWeightInUnit(totalVol, weightUnit),
@@ -545,14 +546,14 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
           rawDate: new Date(s.date).getTime()
         };
       })
-      .sort((a,b) => a.rawDate - b.rawDate);
+      .sort((a, b) => a.rawDate - b.rawDate);
   }, [selectedExId, history, language, weightUnit, distanceUnit, isCardio]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={onBack} className="text-zinc-500">
-          <ChevronLeft className="w-4 h-4 mr-1" /> 
+          <ChevronLeft className="w-4 h-4 mr-1" />
           {language === 'es' ? 'Volver' : 'Back'}
         </Button>
         <h2 className="text-xl font-bold">{language === 'es' ? 'Análisis de Progreso' : 'Progress Analysis'}</h2>
@@ -659,7 +660,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
         <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
           <TrendingUp className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-4" />
           <p className="text-zinc-500">
-            {selectedExId 
+            {selectedExId
               ? (language === 'es' ? 'No hay suficientes datos para este ejercicio.' : 'Not enough data for this exercise.')
               : (language === 'es' ? 'Selecciona un ejercicio para ver su progreso.' : 'Select an exercise to see its progress.')
             }
@@ -681,10 +682,14 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
   const [age, setAge] = useState(profile?.age?.toString() || '');
   const [gender, setGender] = useState<'male' | 'female'>(profile?.gender || 'male');
 
+  const [trainingHours, setTrainingHours] = useState(profile?.trainingHoursWeekly?.toString() || '4');
+  const [objective, setObjective] = useState<'hypertrophy' | 'strength' | 'endurance'>(profile?.trainingObjective || 'hypertrophy');
+  const [proteinPref, setProteinPref] = useState(profile?.proteinPreferenceGPerKg?.toString() || '1.8');
+
   const weightKg = weightInput ? convertWeightInputToKg(parseFloat(weightInput), weightUnit) : 0;
   const canContinue = parseFloat(heightCm) >= 100 && parseFloat(heightCm) <= 250 &&
-                      weightKg >= 30 && weightKg <= 300 &&
-                      parseInt(age) >= 12 && parseInt(age) <= 100;
+    weightKg >= 30 && weightKg <= 300 &&
+    parseInt(age) >= 12 && parseInt(age) <= 100;
 
   const handleSave = () => {
     const h = parseFloat(heightCm);
@@ -699,6 +704,9 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
       weightKg: weightKg,
       age: a,
       gender: gender,
+      trainingHoursWeekly: parseFloat(trainingHours),
+      trainingObjective: objective,
+      proteinPreferenceGPerKg: parseFloat(proteinPref),
       lastReviewAt: new Date().toISOString(), // Actualizamos la fecha de revisión al guardar
     });
     onDone();
@@ -720,7 +728,7 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
         <div className="grid gap-2">
           <Label>{language === 'es' ? 'Género' : 'Gender'}</Label>
           <div className="flex gap-2">
-            <Button 
+            <Button
               type="button"
               variant={gender === 'male' ? 'default' : 'outline'}
               className={`flex-1 ${gender === 'male' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : ''}`}
@@ -728,7 +736,7 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
             >
               {language === 'es' ? 'Hombre' : 'Male'}
             </Button>
-            <Button 
+            <Button
               type="button"
               variant={gender === 'female' ? 'default' : 'outline'}
               className={`flex-1 ${gender === 'female' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : ''}`}
@@ -777,6 +785,42 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
             onChange={e => setWeightInput(e.target.value)}
             className="bg-white dark:bg-zinc-950"
           />
+        </div>
+        <div className="grid gap-2 text-left">
+          <Label>{language === 'es' ? 'Horas de Entreno Semanal' : 'Weekly Training Hours'}</Label>
+          <Input
+            type="number"
+            value={trainingHours}
+            onChange={e => setTrainingHours(e.target.value)}
+            className="bg-white dark:bg-zinc-950"
+          />
+        </div>
+        <div className="grid gap-2 text-left">
+          <Label>{language === 'es' ? 'Objetivo Principal' : 'Primary Objective'}</Label>
+          <select
+            className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm"
+            value={objective}
+            onChange={e => setObjective(e.target.value as any)}
+          >
+            <option value="hypertrophy">{language === 'es' ? 'Hipertrofia' : 'Hypertrophy'}</option>
+            <option value="strength">{language === 'es' ? 'Fuerza' : 'Strength'}</option>
+            <option value="endurance">{language === 'es' ? 'Resistencia' : 'Endurance'}</option>
+          </select>
+        </div>
+        <div className="grid gap-2 text-left">
+          <Label>
+            {language === 'es' ? 'Proteína deseada' : 'Target Protein'} ({proteinPref} g/kg)
+          </Label>
+          <input
+            type="range"
+            min="1.2"
+            max="2.5"
+            step="0.1"
+            value={proteinPref}
+            onChange={e => setProteinPref(e.target.value)}
+            className="w-full accent-emerald-500"
+          />
+          <p className="text-[10px] text-zinc-400">Rec: 1.6 - 1.8 g/kg</p>
         </div>
         <Button
           onClick={handleSave}
@@ -880,7 +924,7 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
             distance: getDistanceInUnit(totalDist, distanceUnit),
             time: totalSecs / 60,
             speed: getDistanceInUnit(speed, distanceUnit),
-            speedDev: completed.length > 1 
+            speedDev: completed.length > 1
               ? getDistanceInUnit(Math.sqrt(completed.map(ls => ls.weightKg > 0 ? (ls.reps / (ls.weightKg / 3600)) : 0).reduce((acc, s) => acc + Math.pow(s - speed, 2), 0) / completed.length), distanceUnit)
               : 0,
             sets: completed.length,
@@ -894,7 +938,7 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
         const totalVol = completed.reduce((acc, ls) => acc + (ls.reps * ls.weightKg), 0);
         const maxWeight = Math.max(...completed.map(ls => ls.weightKg), 0);
         const totalReps = completed.reduce((acc, ls) => acc + ls.reps, 0);
-        
+
         return {
           date: new Date(s.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }),
           volume: getWeightInUnit(totalVol, weightUnit),
@@ -908,7 +952,7 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
           rawDate: new Date(s.date).getTime()
         };
       })
-      .sort((a,b) => a.rawDate - b.rawDate);
+      .sort((a, b) => a.rawDate - b.rawDate);
   }, [exId, history, language, isCardio, distanceUnit]);
 
   if (chartData.length === 0) {
@@ -994,34 +1038,62 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
 }
 
 // — Active Workout Session —
-function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish: (exercises: LoggedExercise[], durationSecs: number) => void; onCancel: () => void }) {
+function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; onFinish: (exercises: LoggedExercise[], durationSecs: number) => void; onCancel: () => void; onPause: () => void }) {
   const customExercises = useStore(s => s.customExercises);
   const language = useStore(s => s.language) as "en" | "es";
   const workoutHistory = useStore(s => s.workoutHistory);
   const t = translations[language];
   const allExercises = useMemo(() => [...EXERCISE_DATABASE, ...customExercises], [customExercises]);
   const updateExerciseGlobal = useStore(s => s.updateExerciseGlobal);
+  const activeSession = useStore(s => s.activeSession);
+  const setActiveSession = useStore(s => s.setActiveSession);
   const { weightUnit, distanceUnit } = useStore();
   const speedUnit = distanceUnit === 'mi' ? 'mi/h' : 'km/h';
 
-  const hasCardio = useMemo(() => 
+  const [elapsed, setElapsed] = useState(() =>
+    (activeSession && activeSession.dayId === day.id) ? activeSession.elapsedSecs : 0
+  );
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [restTime, setRestTime] = useState(0);
+  const [isResting, setIsResting] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+
+  useEffect(() => {
+    let restInterval: ReturnType<typeof setInterval> | null = null;
+    if (isResting) {
+      restInterval = setInterval(() => setRestTime(prev => prev + 1), 1000);
+    }
+    return () => { if (restInterval) clearInterval(restInterval); };
+  }, [isResting]);
+
+  const sessionStartTime = useRef(activeSession?.startTime || new Date().toISOString());
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [day.id]);
+
+  const hasCardio = useMemo(() =>
     day.exercises.some(ex => {
       const def = allExercises.find(e => e.id === ex.exerciseId);
       return def?.category.includes('Cardio');
-    }), 
-  [day.exercises, allExercises]);
+    }),
+    [day.exercises, allExercises]);
 
-  // Cardio Thresholds (Speed km/h)
+
   const [thresholds, setThresholds] = useState({
     moderate: 6,
     intense: 10
   });
 
-  // Initialize logged exercises from routine
-  const [exercises, setExercises] = useState<LoggedExercise[]>(() =>
-    day.exercises.map(ex => {
-      // Buscar historial para este ejercicio específico para pre-cargar valores previos (estilo Hevy)
-      const lastSessionWithEx = [...workoutHistory].reverse().find(sess => 
+
+  const [exercises, setExercises] = useState<LoggedExercise[]>(() => {
+    if (activeSession && activeSession.dayId === day.id) {
+      return activeSession.exercises;
+    }
+    return day.exercises.map(ex => {
+      const lastSessionWithEx = [...workoutHistory].reverse().find(sess =>
         sess.exercises.some(e => e.exerciseId === ex.exerciseId)
       );
       const lastEx = lastSessionWithEx?.exercises.find(e => e.exerciseId === ex.exerciseId);
@@ -1032,11 +1104,8 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
         plannedSets: ex.sets,
         plannedReps: ex.reps,
         loggedSets: Array.from({ length: ex.sets }, (_, si) => {
-          // Al estilo Hevy, sugerimos los valores realizados en la sesión anterior.
-          // Para cardio, esto pre-carga distancia y tiempo (manteniendo la intensidad).
-          // Intentamos emparejar por el mismo número de serie, o usamos la última serie como referencia.
           const lastSet = lastSets[si] || lastSets[lastSets.length - 1];
-          
+
           return {
             reps: lastSet ? lastSet.reps : ex.reps,
             weightKg: lastSet ? lastSet.weightKg : (ex.weightKg ?? 0),
@@ -1044,9 +1113,60 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
             isWarmup: lastSet ? (lastSet as any).isWarmup : false
           } as any;
         })
+      } as LoggedExercise;
+    });
+  });
+
+  useEffect(() => {
+    setActiveSession({
+      dayId: day.id,
+      dayName: day.name,
+      startTime: sessionStartTime.current,
+      exercises: exercises,
+      elapsedSecs: elapsed
+    });
+  }, [exercises, elapsed, day.id, day.name, setActiveSession]);
+
+  const addExerciseMidWorkout = (exId: string) => {
+    const def = allExercises.find(e => e.id === exId);
+    if (!def) return;
+    const isC = def.category.includes('Cardio');
+    const newEx: LoggedExercise = {
+      exerciseId: exId,
+      plannedSets: isC ? 1 : 3,
+      plannedReps: isC ? 5 : 10,
+      loggedSets: Array.from({ length: isC ? 1 : 3 }, () => ({
+        reps: isC ? 5 : 10,
+        weightKg: isC ? 1800 : 0,
+        completed: false,
+        isWarmup: false
+      })) as any
+    };
+    setExercises([...exercises, newEx]);
+  };
+
+  const removeExerciseFromSession = (idx: number) => {
+    if (confirm(language === 'es' ? '¿Eliminar este ejercicio de la sesión?' : 'Remove this exercise from session?')) {
+      setExercises(exercises.filter((_, i) => i !== idx));
+    }
+  };
+
+  const addSetToExercise = (exIdx: number) => {
+    setExercises(exercises.map((ex, i) => {
+      if (i !== exIdx) return ex;
+      const lastSet = ex.loggedSets[ex.loggedSets.length - 1];
+      return {
+        ...ex,
+        plannedSets: ex.plannedSets + 1,
+        loggedSets: [...ex.loggedSets, {
+          reps: lastSet ? lastSet.reps : 10,
+          weightKg: lastSet ? lastSet.weightKg : 0,
+          completed: false,
+          isWarmup: false
+        } as any]
       };
-    })
-  );
+    }));
+  };
 
   const [latestPR, setLatestPR] = useState<{ exercise: string; type: string } | null>(null);
   const [inputStrings, setInputStrings] = useState<Record<string, string>>({});
@@ -1060,7 +1180,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     const isBodyweight = def?.category === 'Bodyweight';
     const currentSets = ex.loggedSets.filter(s => s.completed);
 
-    // Calcular máximos de la sesión actual (excluyendo el set que se está checkeando ahora)
     const otherSets = ex.loggedSets.filter((s, si) => s.completed && si !== setIdx);
     const sessionMaxWeight = otherSets.length > 0 ? Math.max(...otherSets.map(s => s.weightKg)) : 0;
     const sessionMaxRepsGlobal = otherSets.length > 0 ? Math.max(...otherSets.map(s => s.reps)) : 0;
@@ -1100,7 +1219,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
       });
     });
 
-    // Solo es PR si supera el récord histórico Y lo mejor de la sesión actual
     if (!isBodyweight && set.weightKg > histMaxWeight && set.weightKg > sessionMaxWeight && set.weightKg > 0) {
       isWeightPR = true;
     }
@@ -1108,7 +1226,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     if (isBodyweight) {
       if (set.reps > histMaxRepsGlobal && set.reps > sessionMaxRepsGlobal && set.reps > 0) isRepsPR = true;
     } else {
-      // PR de repeticiones para un peso que ya se ha levantado anteriormente
       if (set.weightKg > 0 && set.reps > histMaxRepsForThisWeight && set.reps > sessionMaxRepsAtWeight && histMaxRepsForThisWeight > 0) {
         isRepsPR = true;
       }
@@ -1121,14 +1238,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
 
     return { isWeightPR, isRepsPR, isVolumePR };
   }, [workoutHistory, allExercises]);
-
-  // Timer
-  const [elapsed, setElapsed] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => {
-    intervalRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, []);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -1155,13 +1264,15 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     }
 
     if (field === 'completed' && value === true) {
-      // Auto-categorize Cardio logic based on speed (km/h)
+      setIsResting(true);
+      setRestTime(0);
+
       const currentEx = updated[exIdx];
       const currentSet = currentEx.loggedSets[setIdx];
       const def = allExercises.find(e => e.id === currentEx.exerciseId);
-      
+
       if (def?.category.includes('Cardio') && currentSet.weightKg > 0) {
-        const speed = currentSet.reps / (currentSet.weightKg / 3600); // reps=km, weightKg=seconds
+        const speed = currentSet.reps / (currentSet.weightKg / 3600);
         let detectedCategory: string = 'Soft Cardio';
         if (speed >= thresholds.intense) detectedCategory = 'Intense Cardio';
         else if (speed >= thresholds.moderate) detectedCategory = 'Moderate Cardio';
@@ -1170,11 +1281,11 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
           const isCustom = customExercises.some(ce => ce.id === def.id);
           if (isCustom) {
             updateExerciseGlobal(def.id, { categoryOverride: detectedCategory as RoutineExercise["categoryOverride"] });
-            setLatestPR({ 
-              exercise: getExerciseName(def, language), 
-              type: language === 'es' 
-                ? `¡INTENSIDAD ACTUALIZADA A ${detectedCategory === 'Intense Cardio' ? 'AVANZADA' : detectedCategory === 'Moderate Cardio' ? 'MODERADA' : 'SUAVE'}!` 
-                : `INTENSITY UPDATED TO ${detectedCategory.split(' ')[0].toUpperCase()}!` 
+            setLatestPR({
+              exercise: getExerciseName(def, language),
+              type: language === 'es'
+                ? `¡INTENSIDAD ACTUALIZADA A ${detectedCategory === 'Intense Cardio' ? 'AVANZADA' : detectedCategory === 'Moderate Cardio' ? 'MODERADA' : 'SUAVE'}!`
+                : `INTENSITY UPDATED TO ${detectedCategory.split(' ')[0].toUpperCase()}!`
             });
             setTimeout(() => setLatestPR(null), 4000);
           }
@@ -1191,16 +1302,16 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
         if (isWeightPR) types.push(isCardio ? (language === 'es' ? "VELOCIDAD" : "SPEED") : (language === 'es' ? "PESO MÁX" : "MAX WEIGHT"));
         if (isRepsPR) types.push(isCardio ? (language === 'es' ? "DISTANCIA" : "DISTANCE") : (language === 'es' ? "REPS" : "REPS"));
         if (isVolumePR) types.push(isCardio ? (language === 'es' ? "VOL. TOTAL" : "TOTAL VOL") : (language === 'es' ? "PESO TOTAL" : "TOTAL WEIGHT"));
-        
-        const cardioSpeed = isCardio && updated[exIdx].loggedSets[setIdx].weightKg > 0 
-          ? (updated[exIdx].loggedSets[setIdx].reps / (updated[exIdx].loggedSets[setIdx].weightKg / 3600)).toFixed(1) 
+
+        const cardioSpeed = isCardio && updated[exIdx].loggedSets[setIdx].weightKg > 0
+          ? (updated[exIdx].loggedSets[setIdx].reps / (updated[exIdx].loggedSets[setIdx].weightKg / 3600)).toFixed(1)
           : null;
-        
-        setLatestPR({ 
-          exercise: exName, 
-          type: language === 'es' 
-            ? `¡NUEVO RÉCORD ${types.join(" + ")}! ${cardioSpeed ? `(${cardioSpeed} ${speedUnit})` : ''}` 
-            : `NEW ${types.join(" + ")} PR! ${cardioSpeed ? `(${cardioSpeed} ${speedUnit})` : ''}` 
+
+        setLatestPR({
+          exercise: exName,
+          type: language === 'es'
+            ? `¡NUEVO RÉCORD ${types.join(" + ")}! ${cardioSpeed ? `(${cardioSpeed} ${speedUnit})` : ''}`
+            : `NEW ${types.join(" + ")} PR! ${cardioSpeed ? `(${cardioSpeed} ${speedUnit})` : ''}`
         });
         setTimeout(() => setLatestPR(null), 4000);
       }
@@ -1213,37 +1324,34 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     if (!s.isWarmup) return null;
 
     const routineEx = day.exercises[exIdx];
-    
-    // Buscar la última sesión que contenga este ejercicio para obtener el peso real de trabajo
-    const lastSessionWithEx = [...workoutHistory].reverse().find(sess => 
+
+    const lastSessionWithEx = [...workoutHistory].reverse().find(sess =>
       sess.exercises.some(e => e.exerciseId === ex.exerciseId)
     );
-    
+
     let targetWeight = routineEx?.weightKg || 0;
-    
+
     if (lastSessionWithEx) {
       const lastEx = lastSessionWithEx.exercises.find(e => e.exerciseId === ex.exerciseId);
       const completedSets = lastEx?.loggedSets.filter(ls => ls.completed) || [];
       if (completedSets.length > 0) {
-        // Usamos el peso máximo levantado en la última sesión como referencia (100%)
         targetWeight = Math.max(...completedSets.map(ls => ls.weightKg));
       }
     }
 
     if (targetWeight <= 0) return null;
 
-    // Encontrar qué número de serie de aproximación es esta (0, 1, 2...)
     const warmupIdx = ex.loggedSets.slice(0, setIdx + 1).filter((set: any) => set.isWarmup).length - 1;
-    
+
     const expectedReps = Math.max(1, 8 - (warmupIdx * 2));
     const expectedWeight = targetWeight * (0.4 + (warmupIdx * 0.2));
 
     const weightTol = targetWeight * 0.15;
     const isTooHigh = s.weightKg > expectedWeight + weightTol || s.reps > expectedReps + 1;
     const isTooLow = s.weightKg < expectedWeight - weightTol || s.reps < expectedReps - 1;
-    
+
     if (isTooHigh || isTooLow) {
-      const prefix = isTooHigh 
+      const prefix = isTooHigh
         ? (language === 'es' ? "⚠️ Carga superior a la recomendada" : "⚠️ Load higher than recommended")
         : (language === 'es' ? "⚠️ Carga inferior a la recomendada" : "⚠️ Load lower than recommended");
 
@@ -1257,7 +1365,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     const def = allExercises.find(e => e.id === exercises[exIdx].exerciseId);
     const isCardio = def?.category.includes('Cardio');
 
-    // Para cardio tiempo, permitimos el formato HH:MM
     if (isCardio && field === 'weightKg' && val.includes(':')) {
       const parts = val.split(':');
       const h = parseInt(parts[0]) || 0;
@@ -1268,10 +1375,9 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
       return;
     }
 
-    // Permitir decimales solo en peso o en reps de cardio (distancia)
     const allowsDecimals = field === 'weightKg' || (field === 'reps' && isCardio);
     let sanitized = allowsDecimals ? val.replace(/[^0-9.,]/g, '') : val.replace(/[^0-9]/g, '');
-    
+
     let normalized = sanitized.replace(/,/g, '.');
     const parts = normalized.split('.');
     if (parts.length > 2) {
@@ -1279,14 +1385,14 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
     }
 
     setInputStrings(prev => ({ ...prev, [key]: sanitized }));
-    
+
     if (normalized !== '' && normalized !== '.') {
       let num = parseFloat(normalized);
       if (!isNaN(num)) {
         if (field === 'weightKg') {
-           num = convertWeightInputToKg(num, wUnit);
+          num = convertWeightInputToKg(num, wUnit);
         } else if (field === 'reps' && isCardio) {
-           num = convertDistanceInputToKm(num, dUnit);
+          num = convertDistanceInputToKm(num, dUnit);
         }
         updateSet(exIdx, setIdx, field, num);
       }
@@ -1299,13 +1405,12 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
   const completedSets = exercises.reduce((acc, ex) => acc + ex.loggedSets.filter(s => s.completed).length, 0);
   const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
-  const liveScore = useMemo(() => 
-    calcEfficiencyScore(exercises, workoutHistory, day.id), 
-  [exercises, workoutHistory, day.id]);
+  const liveScore = useMemo(() =>
+    calcEfficiencyScore(exercises, workoutHistory, day.id),
+    [exercises, workoutHistory, day.id]);
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* PR Toast Notification */}
       {latestPR && (
         <div className="fixed bottom-24 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3 border border-amber-600">
@@ -1321,51 +1426,49 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
         </div>
       )}
 
-      {/* Sticky header */}
       <div className="sticky top-16 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="container mx-auto px-4 py-3 max-w-3xl">
-          {/* Thresholds Settings for Auto-Correction */}
           {hasCardio && (
-          <div className="mb-3 p-2.5 bg-zinc-100/50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2.5 pb-2.5 border-b border-zinc-200 dark:border-zinc-700/50">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><Activity className="w-3 h-3"/> {language === 'es' ? `Umbrales (${speedUnit}):` : `Speed Thresholds (${speedUnit}):`}</span>
-              <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-zinc-400 font-medium">Moderado &gt;</Label>
-                <input 
-                  type="number" 
-                  step="0.5"
-                  value={thresholds.moderate}
-                  onChange={e => setThresholds(prev => ({ ...prev, moderate: parseFloat(e.target.value) || 0 }))}
-                  className="w-10 h-6 text-center text-[10px] bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 font-bold text-zinc-900 dark:text-zinc-100"
-                />
+            <div className="mb-3 p-2.5 bg-zinc-100/50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2.5 pb-2.5 border-b border-zinc-200 dark:border-zinc-700/50">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><Activity className="w-3 h-3" /> {language === 'es' ? `Umbrales (${speedUnit}):` : `Speed Thresholds (${speedUnit}):`}</span>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-zinc-400 font-medium">Moderado &gt;</Label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={thresholds.moderate}
+                    onChange={e => setThresholds(prev => ({ ...prev, moderate: parseFloat(e.target.value) || 0 }))}
+                    className="w-10 h-6 text-center text-[10px] bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 font-bold text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-zinc-400 font-medium">Avanzado &gt;</Label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={thresholds.intense}
+                    onChange={e => setThresholds(prev => ({ ...prev, intense: parseFloat(e.target.value) || 0 }))}
+                    className="w-10 h-6 text-center text-[10px] bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 font-bold text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-zinc-400 font-medium">Avanzado &gt;</Label>
-                <input 
-                  type="number" 
-                  step="0.5"
-                  value={thresholds.intense}
-                  onChange={e => setThresholds(prev => ({ ...prev, intense: parseFloat(e.target.value) || 0 }))}
-                  className="w-10 h-6 text-center text-[10px] bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 font-bold text-zinc-900 dark:text-zinc-100"
-                />
+
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Suave' : 'Soft'}</span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">0 - {thresholds.moderate} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Moderado' : 'Moderate'}</span>
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{thresholds.moderate} - {thresholds.intense} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
+                </div>
+                <div className="flex flex-col items-end text-right">
+                  <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Avanzado' : 'Advanced'}</span>
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">&ge; {thresholds.intense} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
+                </div>
               </div>
             </div>
-            
-            <div className="flex items-center justify-between gap-2 px-1">
-              <div className="flex flex-col">
-                <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Suave' : 'Soft'}</span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">0 - {thresholds.moderate} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Moderado' : 'Moderate'}</span>
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{thresholds.moderate} - {thresholds.intense} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
-              </div>
-              <div className="flex flex-col items-end text-right">
-                <span className="text-[8px] text-zinc-400 uppercase font-black tracking-tighter leading-none mb-1">{language === 'es' ? 'Avanzado' : 'Advanced'}</span>
-                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">&ge; {thresholds.intense} <span className="text-[8px] font-normal opacity-70">{speedUnit}</span></span>
-              </div>
-            </div>
-          </div>
           )}
 
           <div className="flex items-center justify-between mb-2">
@@ -1377,21 +1480,45 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Live efficiency score badge */}
+              {isResting && (
+                <div onClick={() => setIsResting(false)} className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-emerald-500 text-white animate-pulse cursor-pointer hover:bg-emerald-600 transition-colors">
+                  <span className="text-[10px] uppercase tracking-wider leading-none mb-1">{language === 'es' ? 'Descanso' : 'Rest'}</span>
+                  <span className="text-lg font-bold font-mono leading-none">{formatTime(restTime)}</span>
+                </div>
+              )}
               <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t.tracker_efficiency}</span>
                 <span className={`text-lg font-bold ${liveScore >= 80 ? 'text-emerald-500' : liveScore >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{liveScore}</span>
               </div>
-              <Button variant="ghost" size="icon" onClick={onCancel} className="text-zinc-400 hover:text-red-500">
-                <X className="w-5 h-5" />
-              </Button>
+              <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                <DialogTrigger render={
+                  <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-red-500">
+                    <X className="w-5 h-5" />
+                  </Button>
+                } />
+                <DialogContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
+                  <DialogHeader>
+                    <DialogTitle>{language === 'es' ? '¿Finalizar Sesión?' : 'Finish Session?'}</DialogTitle>
+                    <DialogDescription>
+                      {language === 'es' ? '¿Querés guardar tu progreso para seguir después o descartar esta sesión?' : 'Do you want to save your progress to continue later or discard this session?'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <Button variant="outline" onClick={onCancel} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/50">
+                      {language === 'es' ? 'Descartar y Salir' : 'Discard and Exit'}
+                    </Button>
+                    <Button onClick={onPause} className="bg-emerald-500 hover:bg-emerald-600 text-white dark:text-black font-bold">
+                      {language === 'es' ? 'Guardar y Salir' : 'Save and Exit'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           <Progress value={progress} className="h-1.5 bg-zinc-100 dark:bg-zinc-800" indicatorClass={progress === 100 ? "bg-emerald-500" : "bg-emerald-500"} />
         </div>
       </div>
 
-      {/* Exercise cards */}
       <div className="container mx-auto px-2 sm:px-4 py-6 max-w-3xl flex-1 space-y-4">
         {exercises.map((ex, exIdx) => {
           const def = allExercises.find(e => e.id === ex.exerciseId);
@@ -1404,20 +1531,57 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
                   <div>
                     <CardTitle className="text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                       {def ? getExerciseName(def, language) : t.build_unknown_ex}
-                      <button 
+                      <button
                         onClick={() => setExpandedProgressEx(expandedProgressEx === ex.exerciseId ? null : ex.exerciseId)}
                         className={`p-1.5 rounded-md transition-colors ${expandedProgressEx === ex.exerciseId ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}
-                        title={language === 'es' ? 'Ver progreso de este ejercicio' : 'View progress for this exercise'}
+                        title={language === 'es' ? 'Ver progreso' : 'View progress'}
                       >
                         <TrendingUp className="w-4 h-4" />
                       </button>
+                      {day.exercises[exIdx]?.restSecs > 0 && (
+                        <span className="text-[10px] text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
+                          ⏱️ {day.exercises[exIdx].restSecs}s rest
+                        </span>
+                      )}
                     </CardTitle>
                     <p className="text-sm text-zinc-500 mt-0.5">{def ? getMuscleLabel(def.primaryMuscle, language) : ''} · {def?.grip ?? ''}</p>
                   </div>
-                  {allDone && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+                  <div className="flex items-center gap-1">
+                    {def?.id.startsWith('custom_') && (
+                      <Dialog>
+                        <DialogTrigger render={
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-blue-500">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        } />
+                        <DialogContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
+                          <DialogHeader>
+                            <DialogTitle>{language === 'es' ? 'Editar Ejercicio' : 'Edit Exercise'}</DialogTitle>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <Label>{language === 'es' ? 'Nombre del Ejercicio' : 'Exercise Name'}</Label>
+                            <Input
+                              defaultValue={getExerciseName(def, language)}
+                              onChange={(e) => updateExerciseGlobal(def.id, { customName: e.target.value })}
+                              className="mt-2"
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeExerciseFromSession(exIdx)}
+                      className="h-8 w-8 text-zinc-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    {allDone && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+                  </div>
                 </div>
               </CardHeader>
-              
+
               {expandedProgressEx === ex.exerciseId && (
                 <div className="px-2 sm:px-6 pb-4 mb-2 border-b border-zinc-100 dark:border-zinc-800">
                   <InlineExerciseProgress exId={ex.exerciseId} history={workoutHistory} language={language} />
@@ -1425,7 +1589,6 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
               )}
 
               <CardContent className="px-2 sm:px-6 pb-4">
-                {/* Column headers */}
                 <div className="grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem] gap-1 sm:gap-2 mb-2 text-[10px] text-zinc-400 uppercase font-bold tracking-wider px-1">
                   <span>#</span>
                   <span className="text-center">{language === 'es' ? 'APROX' : 'WARM'}</span>
@@ -1437,81 +1600,103 @@ function ActiveWorkout({ day, onFinish, onCancel }: { day: WorkoutDay; onFinish:
                   {ex.loggedSets.map((s: any, si) => {
                     const warmupWarning = getWarmupValidation(exIdx, si);
                     return (
-                    <div key={si} className={`grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem] gap-1 sm:gap-2 items-center rounded-lg px-1 py-1 transition-colors relative ${s.completed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-zinc-50 dark:bg-zinc-800/50'} ${s.isWarmup ? 'border-l-2 border-amber-500/50' : ''}`}>
-                      <span className="text-sm font-medium text-zinc-500">{si + 1}</span>
-                      
-                      {/* Warmup toggle */}
-                      <div className="flex flex-col items-center justify-center relative">
-                        <button 
-                          onClick={() => updateSet(exIdx, si, 'isWarmup', !s.isWarmup)}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all ${s.isWarmup ? 'bg-amber-500 text-white shadow-sm' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-                          title={language === 'es' ? 'Marcar como serie de aproximación' : 'Mark as warmup set'}
+                      <div key={si} className={`grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem] gap-1 sm:gap-2 items-center rounded-lg px-1 py-1 transition-colors relative ${s.completed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-zinc-50 dark:bg-zinc-800/50'} ${s.isWarmup ? 'border-l-2 border-amber-500/50' : ''}`}>
+                        <span className="text-sm font-medium text-zinc-500">{si + 1}</span>
+
+                        <div className="flex flex-col items-center justify-center relative">
+                          <button
+                            onClick={() => updateSet(exIdx, si, 'isWarmup', !s.isWarmup)}
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all ${s.isWarmup ? 'bg-amber-500 text-white shadow-sm' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                            title={language === 'es' ? 'Marcar como serie de aproximación' : 'Mark as warmup set'}
+                          >
+                            <Flame className={`w-3.5 h-3.5 ${s.isWarmup ? 'animate-pulse' : ''}`} />
+                          </button>
+                          {warmupWarning && (
+                            <div className="absolute -top-2 -right-1" title={warmupWarning}>
+                              <AlertTriangle className="w-3 h-3 text-amber-500 fill-amber-500/10" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reps spinner */}
+                        <div className="flex items-center gap-0.5 sm:gap-1 justify-center">
+                          <button onClick={() => updateSet(exIdx, si, 'reps', Math.max(0, s.reps - (isCardio ? 0.5 : 1)))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <input
+                            type="text"
+                            inputMode={isCardio ? "decimal" : "numeric"}
+                            value={inputStrings[`${exIdx}-${si}-reps`] ?? (s.reps === 0 ? '' : (isCardio ? getDistanceInUnit(s.reps, distanceUnit).toString() : s.reps.toString()))}
+                            onChange={(e) => handleManualInput(exIdx, si, 'reps', e.target.value, weightUnit, distanceUnit)}
+                            className="w-8 sm:w-12 h-8 text-center text-sm font-bold bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border-0"
+                          />
+                          <button onClick={() => updateSet(exIdx, si, 'reps', s.reps + (isCardio ? convertDistanceInputToKm(0.5, distanceUnit) : 1))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {/* Weight spinner */}
+                        <div className="flex items-center gap-0.5 sm:gap-1 justify-center">
+                          <button onClick={() => updateSet(exIdx, si, 'weightKg', Math.max(0, s.weightKg - (isCardio ? 5 : convertWeightInputToKg(2.5, weightUnit))))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder={isCardio ? "HH:MM" : (weightUnit === 'lbs' ? 'Lbs' : 'Kg')}
+                            value={isCardio ? `${Math.floor(s.weightKg / 3600)}:${Math.floor((s.weightKg % 3600) / 60).toString().padStart(2, '0')}` : (inputStrings[`${exIdx}-${si}-weightKg`] ?? (s.weightKg === 0 ? '' : getWeightInUnit(s.weightKg, weightUnit).toFixed(1).replace(/\.0$/, '')))}
+                            onChange={(e) => handleManualInput(exIdx, si, 'weightKg', e.target.value, weightUnit, distanceUnit)}
+                            className="w-10 sm:w-16 h-8 text-center text-sm font-bold bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border-0"
+                          />
+                          <button onClick={() => updateSet(exIdx, si, 'weightKg', s.weightKg + (isCardio ? 5 : convertWeightInputToKg(2.5, weightUnit)))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {/* Complete toggle */}
+                        <button
+                          onClick={() => updateSet(exIdx, si, 'completed', !s.completed)}
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-colors ${s.completed ? 'bg-emerald-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600'}`}
                         >
-                          <Flame className={`w-3.5 h-3.5 ${s.isWarmup ? 'animate-pulse' : ''}`} />
+                          <Check className="w-4 h-4" />
                         </button>
+
+                        {/* Error text for mobile/compact view */}
                         {warmupWarning && (
-                          <div className="absolute -top-2 -right-1" title={warmupWarning}>
-                            <AlertTriangle className="w-3 h-3 text-amber-500 fill-amber-500/10" />
+                          <div className="col-span-5 px-2 pb-1">
+                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-medium italic animate-in fade-in slide-in-from-left-1">
+                              {warmupWarning}
+                            </p>
                           </div>
                         )}
                       </div>
-
-                      {/* Reps spinner */}
-                      <div className="flex items-center gap-0.5 sm:gap-1 justify-center">
-                        <button onClick={() => updateSet(exIdx, si, 'reps', Math.max(0, s.reps - (isCardio ? 0.5 : 1)))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <input
-                          type="text"
-                          inputMode={isCardio ? "decimal" : "numeric"}
-                          value={inputStrings[`${exIdx}-${si}-reps`] ?? (s.reps === 0 ? '' : (isCardio ? getDistanceInUnit(s.reps, distanceUnit).toString() : s.reps.toString()))}
-                          onChange={(e) => handleManualInput(exIdx, si, 'reps', e.target.value, weightUnit, distanceUnit)}
-                          className="w-8 sm:w-12 h-8 text-center text-sm font-bold bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border-0"
-                        />
-                        <button onClick={() => updateSet(exIdx, si, 'reps', s.reps + (isCardio ? convertDistanceInputToKm(0.5, distanceUnit) : 1))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                      {/* Weight spinner */}
-                      <div className="flex items-center gap-0.5 sm:gap-1 justify-center">
-                        <button onClick={() => updateSet(exIdx, si, 'weightKg', Math.max(0, s.weightKg - (isCardio ? 5 : convertWeightInputToKg(2.5, weightUnit))))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder={isCardio ? "HH:MM" : (weightUnit === 'lbs' ? 'Lbs' : 'Kg')}
-                          value={isCardio ? `${Math.floor(s.weightKg/3600)}:${Math.floor((s.weightKg%3600)/60).toString().padStart(2,'0')}` : (inputStrings[`${exIdx}-${si}-weightKg`] ?? (s.weightKg === 0 ? '' : getWeightInUnit(s.weightKg, weightUnit).toFixed(1).replace(/\.0$/, '')))}
-                          onChange={(e) => handleManualInput(exIdx, si, 'weightKg', e.target.value, weightUnit, distanceUnit)}
-                          className="w-10 sm:w-16 h-8 text-center text-sm font-bold bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border-0"
-                        />
-                        <button onClick={() => updateSet(exIdx, si, 'weightKg', s.weightKg + (isCardio ? 5 : convertWeightInputToKg(2.5, weightUnit)))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                      {/* Complete toggle */}
-                      <button
-                        onClick={() => updateSet(exIdx, si, 'completed', !s.completed)}
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-colors ${s.completed ? 'bg-emerald-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600'}`}
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Error text for mobile/compact view */}
-                      {warmupWarning && (
-                        <div className="col-span-5 px-2 pb-1">
-                          <p className="text-[9px] text-amber-600 dark:text-amber-400 font-medium italic animate-in fade-in slide-in-from-left-1">
-                            {warmupWarning}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )})}
+                    )
+                  })}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => addSetToExercise(exIdx)}
+                  className="w-full mt-2 border border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-emerald-500 text-[10px] font-bold uppercase py-1 h-7"
+                >
+                  <Plus className="w-3 h-3 mr-1" /> {language === 'es' ? 'Añadir Serie' : 'Add Set'}
+                </Button>
               </CardContent>
             </Card>
           );
         })}
+
+        {/* Add exercise during workout */}
+        <div className="pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+          <select
+            className="w-full h-12 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-sm font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-500"
+            onChange={(e) => { addExerciseMidWorkout(e.target.value); e.target.value = ""; }}
+            defaultValue=""
+          >
+            <option value="" disabled>+ {language === 'es' ? 'Añadir Ejercicio Alternativo' : 'Add Alternative Exercise'}</option>
+            {allExercises.map(ex => (
+              <option key={ex.id} value={ex.id}>{getExerciseName(ex, language)}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Finish button */}
         <Button
@@ -1594,8 +1779,8 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
           <div className="flex items-center gap-3">
             <Trophy className="w-6 h-6 shrink-0" />
             <p className="font-bold text-sm">
-              {language === 'es' 
-                ? `¡Increíble! Batiste ${totalPRs} récords personales en total.` 
+              {language === 'es'
+                ? `¡Increíble! Batiste ${totalPRs} récords personales en total.`
                 : `Amazing! You achieved ${totalPRs} total personal records.`}
             </p>
           </div>
@@ -1688,7 +1873,7 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
               const completedSets = ex.loggedSets.filter(s => s.completed);
               const speeds = completedSets.map(s => s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0);
               const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
-              
+
               const getCardioType = (spd: number) => {
                 if (spd >= 10) return language === 'es' ? 'Avanzado' : 'Intense';
                 if (spd >= 6) return language === 'es' ? 'Moderado' : 'Moderate';
@@ -1696,9 +1881,9 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
               };
 
               const resultType = getCardioType(avgSpeed);
-              
-              const variance = completedSets.length > 1 
-                ? speeds.reduce((acc, s) => acc + Math.pow(s - avgSpeed, 2), 0) / speeds.length 
+
+              const variance = completedSets.length > 1
+                ? speeds.reduce((acc, s) => acc + Math.pow(s - avgSpeed, 2), 0) / speeds.length
                 : 0;
               const speedDev = Math.sqrt(variance);
               const speedDevConverted = getDistanceInUnit(speedDev, distanceUnit);
@@ -1719,16 +1904,16 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
                           </div>
                         )}
                       </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">{language === 'es' ? 'Resultado' : 'Result'}: <span className="text-blue-500">{resultType}</span></span>
-                            {completedSets.length > 1 && <span className="text-[9px] text-zinc-400 italic">{language === 'es' ? 'Consistencia' : 'Consistency'}: ±{speedDevConverted.toFixed(2)} {speedUnit}</span>}
-                          </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">{language === 'es' ? 'Resultado' : 'Result'}: <span className="text-blue-500">{resultType}</span></span>
+                        {completedSets.length > 1 && <span className="text-[9px] text-zinc-400 italic">{language === 'es' ? 'Consistencia' : 'Consistency'}: ±{speedDevConverted.toFixed(2)} {speedUnit}</span>}
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-black text-zinc-900 dark:text-zinc-50">{avgSpeed.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">{speedUnit} avg.</span></div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     {completedSets.map((s, si) => {
                       const speed = s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0;
@@ -1738,7 +1923,7 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
                         <div key={si} className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/40 rounded-lg px-3 py-2 border border-zinc-100 dark:border-zinc-800/50">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-zinc-400 uppercase leading-none mb-1">{language === 'es' ? 'Intervalo' : 'Interval'} {si + 1}</span>
-                            <span className="text-xs text-zinc-600 dark:text-zinc-400">{formatDistance(s.reps, distanceUnit, false)}{distanceUnit} <span className="opacity-50">@</span> {Math.floor(s.weightKg/3600)}:{Math.floor((s.weightKg%3600)/60).toString().padStart(2,'0')}</span>
+                            <span className="text-xs text-zinc-600 dark:text-zinc-400">{formatDistance(s.reps, distanceUnit, false)}{distanceUnit} <span className="opacity-50">@</span> {Math.floor(s.weightKg / 3600)}:{Math.floor((s.weightKg % 3600) / 60).toString().padStart(2, '0')}</span>
                           </div>
                           <div className="text-right">
                             <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{speed.toFixed(1)} {speedUnit}</div>
@@ -1768,19 +1953,19 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
                     )}
                   </div>
                   <div className="text-xs text-zinc-500">{done}/{ex.plannedSets} {language === 'es' ? 'series' : 'sets'}</div>
-                      {!isCardio && vol > 0 && totalStrengthReps > 0 && (
-                        <div className="text-xs text-zinc-500">
-                          {`${weightUnit}/Rep`}: {(vol / ex.loggedSets.filter(s => s.completed).reduce((a,b) => a + b.reps, 0)).toFixed(2)}
-                        </div>
-                      )}
+                  {!isCardio && vol > 0 && totalStrengthReps > 0 && (
+                    <div className="text-xs text-zinc-500">
+                      {`${weightUnit}/Rep`}: {(vol / ex.loggedSets.filter(s => s.completed).reduce((a, b) => a + b.reps, 0)).toFixed(2)}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <Badge variant={done === ex.plannedSets ? "default" : "outline"} className={done === ex.plannedSets ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" : "text-zinc-400"}>
-                    {isCardio 
-                      ? ex.loggedSets.filter(s => s.completed).map(s => `${formatDistance(s.reps, distanceUnit, false)}${distanceUnit} (${Math.floor(s.weightKg/3600)}:${Math.floor((s.weightKg%3600)/60).toString().padStart(2,'0')})`).join(', ') 
-                      : (vol > 0 
-                          ? formatWeight(vol, weightUnit) 
-                          : '—')
+                    {isCardio
+                      ? ex.loggedSets.filter(s => s.completed).map(s => `${formatDistance(s.reps, distanceUnit, false)}${distanceUnit} (${Math.floor(s.weightKg / 3600)}:${Math.floor((s.weightKg % 3600) / 60).toString().padStart(2, '0')})`).join(', ')
+                      : (vol > 0
+                        ? formatWeight(vol, weightUnit)
+                        : '—')
                     }
                   </Badge>
                   {!isCardio && vol > 0 && <TrendArrow trend={exTrend} />}
@@ -1801,6 +1986,9 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
 // — Main Page —
 export default function TrackerPage() {
   const saveWorkoutSession = useStore(s => s.saveWorkoutSession);
+  const activeSession = useStore(s => s.activeSession);
+  const setActiveSession = useStore(s => s.setActiveSession);
+  const days = useStore(s => s.days); // Fetch days from store
   const workoutHistory = useStore(s => s.workoutHistory);
   const language = useStore(s => s.language) as "en" | "es";
   const profile = useStore(s => s.profile);
@@ -1819,7 +2007,7 @@ export default function TrackerPage() {
     if (isHydrated) {
       const isMissingMetrics = !profile?.heightCm || !profile?.weightKg || !profile?.age || !profile?.gender;
       const isReviewDue = profile?.lastReviewAt && (Date.now() - new Date(profile.lastReviewAt).getTime() > 60 * 86400000);
-      
+
       if (isMissingMetrics || isReviewDue) {
         setTimeout(() => setPhase('metrics'), 0);
       }
@@ -1838,9 +2026,15 @@ export default function TrackerPage() {
     setPhase('select');
   };
 
+  const handlePause = () => {
+    setPhase('select');
+    setSelectedDay(null);
+  };
+
   const handleFinish = (exercises: LoggedExercise[], durationSecs: number) => {
     if (!selectedDay) return;
     const score = calcEfficiencyScore(exercises, workoutHistory, selectedDay.id);
+    setActiveSession(null); // Clear active session on finish
     const session: WorkoutSession = {
       id: Date.now().toString(),
       dayId: selectedDay.id,
@@ -1856,6 +2050,7 @@ export default function TrackerPage() {
   };
 
   const handleCancel = () => {
+    setActiveSession(null);
     setPhase('select');
     setSelectedDay(null);
   };
@@ -1868,12 +2063,32 @@ export default function TrackerPage() {
 
   if (!isHydrated) return null;
 
+  // Resume active session prompt
+  if (phase === 'select' && activeSession) {
+    const day = (days || []).find((d: WorkoutDay) => d.id === activeSession.dayId);
+    if (day) {
+      return (
+        <div className="container mx-auto px-4 py-20 text-center max-w-md">
+          <div className="bg-emerald-50 dark:bg-emerald-500/10 p-8 rounded-3xl border border-emerald-200">
+            <Activity className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">{language === 'es' ? 'Entrenamiento en pausa' : 'Workout in progress'}</h2>
+            <p className="text-sm text-zinc-500 mb-6">{language === 'es' ? `Tienes una sesión de "${activeSession.dayName}" sin terminar.` : `You have an unfinished session of "${activeSession.dayName}".`}</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => handleStartWorkout(day)} className="bg-emerald-500 text-white">Continuar sesión</Button>
+              <Button variant="ghost" onClick={() => setActiveSession(null)} className="text-red-500">Descartar y empezar de cero</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
   if (phase === 'metrics') {
     return <BodyMetricsScreen onDone={handleMetricsDone} />;
   }
 
   if (phase === 'active' && selectedDay) {
-    return <ActiveWorkout day={selectedDay} onFinish={handleFinish} onCancel={handleCancel} />;
+    return <ActiveWorkout day={selectedDay} onFinish={handleFinish} onCancel={handleCancel} onPause={handlePause} />;
   }
 
   if (phase === 'summary' && completedSession) {

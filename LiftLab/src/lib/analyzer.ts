@@ -1,5 +1,6 @@
 import { MuscleGroup, EXERCISE_DATABASE, ExerciseDef } from "./exercises";
 import { WorkoutDay } from "@/store/useStore";
+import { getMuscleLabel } from "@/lib/i18n";
 
 export interface AnalysisResults {
   totalSetsPerMuscle: Record<MuscleGroup, number>;
@@ -12,19 +13,7 @@ export interface AnalysisResults {
   efficiencyScore: number;
 }
 
-const MUSCLE_NAMES_ES: Partial<Record<MuscleGroup, string>> = {
-  Chest: "Pecho", "Upper Chest": "Pecho Superior", Lats: "Dorsales",
-  "Upper Back": "Espalda Alta", "Lower Back": "Lumbar", Traps: "Trapecio",
-  "Front Delts": "Deltoides Anterior", "Lateral Delts": "Deltoides Lateral",
-  "Rear Delts": "Deltoides Posterior", Biceps: "Bíceps", Triceps: "Tríceps",
-  Forearms: "Antebrazos", Quads: "Cuádriceps", Hamstrings: "Isquiosurales",
-  Glutes: "Glúteos", Calves: "Gemelos", Abs: "Abdominales", Obliques: "Oblicuos",
-  Adductors: "Aductores", Serratus: "Serrato",
-};
 
-function getMuscleLabel(muscle: MuscleGroup, lang: "en" | "es") {
-  return lang === "es" ? (MUSCLE_NAMES_ES[muscle] ?? muscle) : muscle;
-}
 
 export function analyzeRoutine(
   days: WorkoutDay[], 
