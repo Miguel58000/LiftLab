@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1168,6 +1168,71 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     }));
   };
 
+  const removeSetFromExercise = (exIdx: number, setIdx: number) => {
+    setInputStrings(prev => {
+      const next = { ...prev };
+      delete next[`${exIdx}-${setIdx}-reps`];
+      delete next[`${exIdx}-${setIdx}-weightKg`];
+      
+      const numSets = exercises[exIdx].loggedSets.length;
+      for (let si = setIdx + 1; si < numSets; si++) {
+        const repsVal = next[`${exIdx}-${si}-reps`];
+        if (repsVal !== undefined) {
+          next[`${exIdx}-${si - 1}-reps`] = repsVal;
+          delete next[`${exIdx}-${si}-reps`];
+        }
+        const weightVal = next[`${exIdx}-${si}-weightKg`];
+        if (weightVal !== undefined) {
+          next[`${exIdx}-${si - 1}-weightKg`] = weightVal;
+          delete next[`${exIdx}-${si}-weightKg`];
+        }
+      }
+      return next;
+    });
+
+    setExercises(exercises.map((ex, i) => {
+      if (i !== exIdx) return ex;
+      return {
+        ...ex,
+        plannedSets: Math.max(0, ex.plannedSets - 1),
+        loggedSets: ex.loggedSets.filter((_, si) => si !== setIdx)
+      };
+    }));
+  };
+
+  const reorderExercise = (oldIndex: number, newIndex: number) => {
+    setInputStrings(prev => {
+      const next: Record<string, string> = {};
+      Object.entries(prev).forEach(([key, val]) => {
+        const parts = key.split('-');
+        if (parts.length === 3) {
+          const exIdx = parseInt(parts[0]);
+          const setIdx = parts[1];
+          const field = parts[2];
+          
+          let newExIdx = exIdx;
+          if (exIdx === oldIndex) {
+            newExIdx = newIndex;
+          } else if (oldIndex < newIndex && exIdx > oldIndex && exIdx <= newIndex) {
+            newExIdx = exIdx - 1;
+          } else if (oldIndex > newIndex && exIdx >= newIndex && exIdx < oldIndex) {
+            newExIdx = exIdx + 1;
+          }
+          
+          next[`${newExIdx}-${setIdx}-${field}`] = val;
+        } else {
+          next[key] = val;
+        }
+      });
+      return next;
+    });
+
+    const nextExercises = [...exercises];
+    const [removed] = nextExercises.splice(oldIndex, 1);
+    nextExercises.splice(newIndex, 0, removed);
+    setExercises(nextExercises);
+  };
+
   const [latestPR, setLatestPR] = useState<{ exercise: string; type: string } | null>(null);
   const [inputStrings, setInputStrings] = useState<Record<string, string>>({});
   const [expandedProgressEx, setExpandedProgressEx] = useState<string | null>(null);
@@ -1323,7 +1388,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     const s = ex.loggedSets[setIdx] as any;
     if (!s.isWarmup) return null;
 
-    const routineEx = day.exercises[exIdx];
+    const routineEx = day.exercises.find(e => e.exerciseId === ex.exerciseId);
 
     const lastSessionWithEx = [...workoutHistory].reverse().find(sess =>
       sess.exercises.some(e => e.exerciseId === ex.exerciseId)
@@ -1538,15 +1603,42 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
                       >
                         <TrendingUp className="w-4 h-4" />
                       </button>
-                      {day.exercises[exIdx]?.restSecs > 0 && (
-                        <span className="text-[10px] text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
-                          ⏱️ {day.exercises[exIdx].restSecs}s rest
-                        </span>
-                      )}
+                      {(() => {
+                        const routineEx = day.exercises.find(e => e.exerciseId === ex.exerciseId);
+                        return routineEx && routineEx.restSecs > 0 ? (
+                          <span className="text-[10px] text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
+                            ⏱️ {routineEx.restSecs}s rest
+                          </span>
+                        ) : null;
+                      })()}
                     </CardTitle>
                     <p className="text-sm text-zinc-500 mt-0.5">{def ? getMuscleLabel(def.primaryMuscle, language) : ''} · {def?.grip ?? ''}</p>
                   </div>
                   <div className="flex items-center gap-1">
+                    {/* Reorder controls */}
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={exIdx === 0}
+                        onClick={() => reorderExercise(exIdx, exIdx - 1)}
+                        className="h-8 w-8 text-zinc-400 disabled:opacity-30 disabled:pointer-events-none hover:text-zinc-600 dark:hover:text-zinc-300"
+                        title={language === 'es' ? 'Subir ejercicio' : 'Move exercise up'}
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={exIdx === exercises.length - 1}
+                        onClick={() => reorderExercise(exIdx, exIdx + 1)}
+                        className="h-8 w-8 text-zinc-400 disabled:opacity-30 disabled:pointer-events-none hover:text-zinc-600 dark:hover:text-zinc-300"
+                        title={language === 'es' ? 'Bajar ejercicio' : 'Move exercise down'}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </div>
+
                     {def?.id.startsWith('custom_') && (
                       <Dialog>
                         <DialogTrigger render={
@@ -1589,18 +1681,19 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
               )}
 
               <CardContent className="px-2 sm:px-6 pb-4">
-                <div className="grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem] gap-1 sm:gap-2 mb-2 text-[10px] text-zinc-400 uppercase font-bold tracking-wider px-1">
+                <div className="grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem_2.5rem] gap-1 sm:gap-2 mb-2 text-[10px] text-zinc-400 uppercase font-bold tracking-wider px-1">
                   <span>#</span>
                   <span className="text-center">{language === 'es' ? 'APROX' : 'WARM'}</span>
                   <span className="text-center">{isCardio ? distanceUnit.toUpperCase() : t.build_reps}</span>
                   <span className="text-center">{isCardio ? (language === 'es' ? 'Tiempo' : 'Time') : t.tracker_weight}</span>
+                  <span></span>
                   <span></span>
                 </div>
                 <div className="space-y-2">
                   {ex.loggedSets.map((s: any, si) => {
                     const warmupWarning = getWarmupValidation(exIdx, si);
                     return (
-                      <div key={si} className={`grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem] gap-1 sm:gap-2 items-center rounded-lg px-1 py-1 transition-colors relative ${s.completed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-zinc-50 dark:bg-zinc-800/50'} ${s.isWarmup ? 'border-l-2 border-amber-500/50' : ''}`}>
+                      <div key={si} className={`grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem_2.5rem] gap-1 sm:gap-2 items-center rounded-lg px-1 py-1 transition-colors relative ${s.completed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-zinc-50 dark:bg-zinc-800/50'} ${s.isWarmup ? 'border-l-2 border-amber-500/50' : ''}`}>
                         <span className="text-sm font-medium text-zinc-500">{si + 1}</span>
 
                         <div className="flex flex-col items-center justify-center relative">
@@ -1659,9 +1752,19 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
                           <Check className="w-4 h-4" />
                         </button>
 
+                        {/* Delete set */}
+                        <button
+                          disabled={ex.loggedSets.length <= 1}
+                          onClick={() => removeSetFromExercise(exIdx, si)}
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-colors ${ex.loggedSets.length > 1 ? 'text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30'}`}
+                          title={ex.loggedSets.length <= 1 ? (language === 'es' ? 'Debe haber al menos una serie' : 'Must keep at least one set') : (language === 'es' ? 'Eliminar serie' : 'Delete set')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
                         {/* Error text for mobile/compact view */}
                         {warmupWarning && (
-                          <div className="col-span-5 px-2 pb-1">
+                          <div className="col-span-6 px-2 pb-1">
                             <p className="text-[9px] text-amber-600 dark:text-amber-400 font-medium italic animate-in fade-in slide-in-from-left-1">
                               {warmupWarning}
                             </p>

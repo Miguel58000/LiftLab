@@ -11,7 +11,7 @@ LiftLab is a next-generation fitness routine analyzer and tracking application. 
 
 - **Workout Builder**: Easily build and organize your routine days (e.g., Push, Pull, Legs) with custom sets, reps, weight, and rest durations.
 - **Session Persistence (Save & Resume)**: Pause your workout at any time and resume exactly where you left off later.
-- **Dynamic Routine Adjustment**: Add, edit, or delete exercises directly from the tracker during a live session.
+- **Dynamic Routine Adjustment**: Add, edit, delete, or reorder exercises and individual sets directly from the tracker during a live session.
 - **On-the-fly Custom Exercises**: Create new exercises in your database without leaving the active workout.
 - **Automatic Rest Timer**: Real-time rest tracking triggered automatically after finishing a set.
 - **Analysis Dashboard**: Real-time analysis of weekly muscle group volume (including primary/secondary muscle load contributions), muscle balance radar charts, and muscle heatmap fatigue distribution.
@@ -97,7 +97,13 @@ npm run start
 
 ## 📜 Version History
 
-### `v1.2.0` (Latest Release - 2026-06-18)
+### `v1.3.0` (Latest Release - 2026-06-20)
+
+- **Set Deletion**: Added the ability to delete individual sets (series) in the active workout tracker. It shifts input states properly and maintains a minimum of 1 set per exercise.
+- **Exercise Reordering in Tracker**: Added move up/down chevron controllers in active workout tracker card headers to reorder exercises dynamically, aligning with the Workout Builder.
+- **Documentation & UI Versioning**: Updated README features and layout footer information to keep references synchronized.
+
+### `v1.2.0` (Previous Release - 2026-06-18)
 
 - **Workout Interactivity**: Added the ability to add, delete, and rename exercises directly within an active session.
 - **Smart Rest Timer**: Implemented a rest chronometer that activates automatically when a set is marked as completed.
@@ -142,7 +148,7 @@ El proyecto está estructurado con la aplicación Next.js dentro del subdirector
 
 - **Constructor de Rutinas**: Armá y organizá fácilmente tus días de entrenamiento (ej. Empuje, Tirón, Piernas) con series, repeticiones, peso y tiempos de descanso personalizados.
 - **Persistencia de Sesión (Guardar y Reanudar)**: Pausá tu entrenamiento en cualquier momento y retomalo exactamente donde lo dejaste.
-- **Ajuste Dinámico de Rutina**: Añadí, editá o eliminá ejercicios directamente desde el tracker durante una sesión en vivo.
+- **Ajuste Dinámico de Rutina**: Añadí, editá, eliminá o reordená ejercicios y series individuales directamente desde el tracker durante una sesión en vivo.
 - **Creación de Ejercicios en Vivo**: Creá nuevos ejercicios en tu base de datos sin salir del entrenamiento activo.
 - **Cronómetro de Descanso Automático**: Seguimiento en tiempo real del descanso activado automáticamente al finalizar una serie.
 - **Panel de Análisis**: Análisis en tiempo real del volumen semanal por grupo muscular (incluyendo la contribución de músculos primarios y secundarios), gráficos radar de balance muscular y mapa de calor de distribución de fatiga.
@@ -228,7 +234,13 @@ npm run start
 
 ## 📜 Historial de Versiones
 
-### `v1.2.0` (Lanzamiento Actual - 18/06/2026)
+### `v1.3.0` (Lanzamiento Actual - 20/06/2026)
+
+- **Eliminación de Series**: Posibilidad de eliminar series individuales dentro del tracker en vivo. Desplaza correctamente los inputs y asegura mantener al menos 1 serie por ejercicio.
+- **Reordenar Ejercicios en el Tracker**: Añadido soporte para subir/bajar ejercicios dinámicamente en el tracker a través de flechas de control, igual que en el constructor de rutinas (Builder).
+- **Sincronización de Versión**: Ajustado el readme y el footer de la aplicación para reflejar la versión actual.
+
+### `v1.2.0` (Lanzamiento Anterior - 18/06/2026)
 
 - **Interactividad en el Tracker**: Se añadió la posibilidad de agregar, eliminar y renombrar ejercicios directamente en una sesión activa.
 - **Cronómetro de Descanso Inteligente**: Implementación de un cronómetro que se activa automáticamente al marcar una serie como completada.
