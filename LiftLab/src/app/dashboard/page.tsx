@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, CheckCircle2, Info, Clock, Activity, Target, TrendingUp, TrendingDown, Minus, RefreshCcw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MuscleGroup, EXERCISE_DATABASE } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,11 @@ const HEATMAP_MUSCLES: MuscleGroup[] = [
 const PUSH_MUSCLES: MuscleGroup[] = ["Chest", "Upper Chest", "Front Delts", "Lateral Delts", "Triceps"];
 const PULL_MUSCLES: MuscleGroup[] = ["Lats", "Upper Back", "Lower Back", "Traps", "Rear Delts", "Biceps", "Brachialis", "Forearms", "Neck"];
 const LEGS_MUSCLES: MuscleGroup[] = ["Quads", "Hamstrings", "Glutes", "Calves", "Adductors", "Tibialis", "Psoas"];
+
+type StoredMacroResult = MacroResult & {
+  goalEn?: string;
+  goalEs?: string;
+};
 
 export default function DashboardPage() {
   const days = useStore(s => s.days);
@@ -195,11 +199,11 @@ export default function DashboardPage() {
     } else {
       // Target macros are set and no review is due.
       // Display macros based on the user's chosen targetMacros.
-      const stored = profile.targetMacros;
+      const stored = profile.targetMacros as StoredMacroResult;
       currentDisplayedMacros = {
         ...stored,
-        goalEn: (stored as any).goalEn || goalLabel(stored.goal, 'en'),
-        goalEs: (stored as any).goalEs || goalLabel(stored.goal, 'es'),
+        goalEn: stored.goalEn || goalLabel(stored.goal, 'en'),
+        goalEs: stored.goalEs || goalLabel(stored.goal, 'es'),
       } as MacroResult;
       goalState = currentDisplayedMacros.goal === bestGoal ? 'confirmed' : 'mismatch';
     }
@@ -583,7 +587,7 @@ export default function DashboardPage() {
               { label: t.prog_sessions, current: last30.length, prev: prev30.length, d: sessionDelta, fmt: (v: number) => v.toString() },
               { label: t.prog_avg_eff, current: last30Eff, prev: progressStats.prev30Eff, d: effDelta, fmt: (v: number) => `${v}` },
               { label: t.prog_volume, current: last30Vol, prev: progressStats.prev30Vol, d: volDelta, fmt: (v: number) => formatWeight(v, weightUnit) },
-            ] as const).map(({ label, current, prev: _, d, fmt }) => (
+            ] as const).map(({ label, current, d, fmt }) => (
               <Card key={label} className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
                 <CardContent className="p-4">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">{label}</p>

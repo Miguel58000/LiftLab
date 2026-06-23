@@ -26,6 +26,7 @@ export interface LoggedSet {
   reps: number;
   weightKg: number;
   completed: boolean;
+  isWarmup?: boolean;
 }
 
 export interface LoggedExercise {

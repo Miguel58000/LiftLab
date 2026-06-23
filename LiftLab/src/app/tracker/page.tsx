@@ -31,6 +31,8 @@ const MUSCLE_NAMES_ES: Partial<Record<MuscleGroup, string>> = {
   ["Psoas" as MuscleGroup]: "Psoas",
 };
 
+type TrainingObjective = NonNullable<UserProfile['trainingObjective']>;
+
 function getMuscleLabel(muscle: MuscleGroup, lang: "en" | "es") {
   return lang === "es" ? (MUSCLE_NAMES_ES[muscle] ?? muscle) : muscle;
 }
@@ -449,7 +451,6 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {completedSets.map((s, si) => {
-                      const _speed = s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0;
                       return (
                         <div key={si} className="text-[10px] px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400">
                           {isCardio
@@ -800,7 +801,7 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
           <select
             className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm"
             value={objective}
-            onChange={e => setObjective(e.target.value as any)}
+            onChange={e => setObjective(e.target.value as TrainingObjective)}
           >
             <option value="hypertrophy">{language === 'es' ? 'Hipertrofia' : 'Hypertrophy'}</option>
             <option value="strength">{language === 'es' ? 'Fuerza' : 'Strength'}</option>
@@ -953,7 +954,7 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
         };
       })
       .sort((a, b) => a.rawDate - b.rawDate);
-  }, [exId, history, language, isCardio, distanceUnit]);
+  }, [exId, history, language, isCardio, distanceUnit, weightUnit]);
 
   if (chartData.length === 0) {
     return <div className="text-center text-xs text-zinc-500 py-4">{language === 'es' ? 'No hay datos previos para este ejercicio.' : 'No past data for this exercise.'}</div>;
@@ -1110,8 +1111,8 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
             reps: lastSet ? lastSet.reps : ex.reps,
             weightKg: lastSet ? lastSet.weightKg : (ex.weightKg ?? 0),
             completed: false,
-            isWarmup: lastSet ? (lastSet as any).isWarmup : false
-          } as any;
+            isWarmup: lastSet ? lastSet.isWarmup : false
+          };
         })
       } as LoggedExercise;
     });
@@ -1140,7 +1141,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
         weightKg: isC ? 1800 : 0,
         completed: false,
         isWarmup: false
-      })) as any
+      }))
     };
     setExercises([...exercises, newEx]);
   };
@@ -1163,7 +1164,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
           weightKg: lastSet ? lastSet.weightKg : 0,
           completed: false,
           isWarmup: false
-        } as any]
+        }]
       };
     }));
   };
@@ -1310,7 +1311,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     return `${m}:${s}`;
   };
 
-  const updateSet = useCallback((exIdx: number, setIdx: number, field: any, value: number | boolean) => {
+  const updateSet = useCallback((exIdx: number, setIdx: number, field: keyof LoggedSet, value: number | boolean) => {
     const updated = exercises.map((ex, ei) => {
       if (ei !== exIdx) return ex;
       return {
@@ -1385,7 +1386,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
 
   const getWarmupValidation = (exIdx: number, setIdx: number) => {
     const ex = exercises[exIdx];
-    const s = ex.loggedSets[setIdx] as any;
+    const s = ex.loggedSets[setIdx];
     if (!s.isWarmup) return null;
 
     const routineEx = day.exercises.find(e => e.exerciseId === ex.exerciseId);
@@ -1406,7 +1407,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
 
     if (targetWeight <= 0) return null;
 
-    const warmupIdx = ex.loggedSets.slice(0, setIdx + 1).filter((set: any) => set.isWarmup).length - 1;
+    const warmupIdx = ex.loggedSets.slice(0, setIdx + 1).filter(set => set.isWarmup).length - 1;
 
     const expectedReps = Math.max(1, 8 - (warmupIdx * 2));
     const expectedWeight = targetWeight * (0.4 + (warmupIdx * 0.2));
@@ -1441,7 +1442,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     }
 
     const allowsDecimals = field === 'weightKg' || (field === 'reps' && isCardio);
-    let sanitized = allowsDecimals ? val.replace(/[^0-9.,]/g, '') : val.replace(/[^0-9]/g, '');
+    const sanitized = allowsDecimals ? val.replace(/[^0-9.,]/g, '') : val.replace(/[^0-9]/g, '');
 
     let normalized = sanitized.replace(/,/g, '.');
     const parts = normalized.split('.');
@@ -1690,7 +1691,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
                   <span></span>
                 </div>
                 <div className="space-y-2">
-                  {ex.loggedSets.map((s: any, si) => {
+                  {ex.loggedSets.map((s, si) => {
                     const warmupWarning = getWarmupValidation(exIdx, si);
                     return (
                       <div key={si} className={`grid grid-cols-[1.25rem_1.5rem_1fr_1fr_2rem_2rem] sm:grid-cols-[2rem_2.5rem_1fr_1fr_2.5rem_2.5rem] gap-1 sm:gap-2 items-center rounded-lg px-1 py-1 transition-colors relative ${s.completed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-zinc-50 dark:bg-zinc-800/50'} ${s.isWarmup ? 'border-l-2 border-amber-500/50' : ''}`}>

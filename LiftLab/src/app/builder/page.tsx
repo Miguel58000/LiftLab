@@ -41,7 +41,6 @@ export default function BuilderPage() {
   const removeDay = useStore((state) => state.removeDay);
   const addExerciseToDay = useStore((state) => state.addExerciseToDay);
   const updateExerciseInDay = useStore((state) => state.updateExerciseInDay);
-  const updateExerciseGlobal = useStore((state) => state.updateExerciseGlobal);
   const updateCustomExerciseDef = useStore((state) => state.updateCustomExerciseDef);
   const updateExercisesByExerciseId = useStore((state) => state.updateExercisesByExerciseId);
   const reorderExerciseInDay = useStore((state) => state.reorderExerciseInDay);
@@ -123,7 +122,7 @@ export default function BuilderPage() {
   const [editingMusclesSecondaries, setEditingMusclesSecondaries] = useState<MuscleGroup[]>([]);
   const [editingCategory, setEditingCategory] = useState<string>("");
 
-  const allExercises = [...EXERCISE_DATABASE, ...customExercises];
+  const allExercises = useMemo(() => [...EXERCISE_DATABASE, ...customExercises], [customExercises]);
 
   // Rules of Hooks: These must be declared before any conditional returns
   const [exerciseSearch, setExerciseSearch] = useState("");
@@ -147,8 +146,6 @@ export default function BuilderPage() {
       </div>
     );
   }
-
-  console.log("BuilderPage rendering. Current hook days:", days);
 
   const allMuscles = MUSCLE_GROUPS;
   const handleUpdateProfile = (

@@ -18,7 +18,6 @@ export interface FirestoreUserData {
  * Esta función elimina recursivamente todas las claves con valor undefined
  * antes de escribir en la base de datos.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function stripUndefined<T>(obj: T): T {
   if (Array.isArray(obj)) {
     return obj.map(stripUndefined) as unknown as T;

@@ -59,7 +59,7 @@ export function calculateMacros(
   }
 
   // Protein: User pref or default based on science (1.6-2.2 range)
-  let proteinGPerKg = userProteinPref || (nutritionPhase === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
+  const proteinGPerKg = userProteinPref || (nutritionPhase === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
   const protein = Math.round(proteinGPerKg * weightKg);
 
   // Healthy Fat: Vital for hormones (0.8g - 1g / kg)

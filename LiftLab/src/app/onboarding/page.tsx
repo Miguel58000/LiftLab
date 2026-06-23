@@ -99,6 +99,7 @@ export default function OnboardingPage() {
   const [strengths, setStrengths] = useState<MuscleGroup[]>([]);
   const [goals, setGoals] = useState<MuscleGroup[]>([]);
   const [suggested, setSuggested] = useState<SuggestedDay[]>([]);
+  const [nowTs] = useState(() => Date.now());
 
   const toggle = (list: MuscleGroup[], item: MuscleGroup, setter: (v: MuscleGroup[]) => void) => {
     setter(list.includes(item) ? list.filter(m => m !== item) : [...list, item]);
@@ -135,12 +136,11 @@ export default function OnboardingPage() {
   const handleSkip = () => saveProfile("/builder");
 
   // Progress stats for review
-  const { last30, avgEff } = useMemo(() => {
-    const nowTs = Date.now();
+  const { avgEff } = useMemo(() => {
     const last30Sessions = workoutHistory.filter(s => nowTs - new Date(s.date).getTime() < 30 * 86400000);
     const avg = last30Sessions.length ? Math.round(last30Sessions.reduce((a, s) => a + s.efficiencyScore, 0) / last30Sessions.length) : null;
     return { last30: last30Sessions, avgEff: avg };
-  }, [workoutHistory]);
+  }, [workoutHistory, nowTs]);
 
   const TOTAL_STEPS = 3;
 

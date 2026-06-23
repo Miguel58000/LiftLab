@@ -24,19 +24,19 @@ function SettingsModal({ trigger }: { trigger: React.ReactElement }) {
     language, setLanguage,
     weightUnit, setWeightUnit,
     distanceUnit, setDistanceUnit,
-    profile, setProfile,
   } = useStore();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const t = translations[language];
 
   React.useEffect(() => {
-    setMounted(true);
+    const timer = window.setTimeout(() => setMounted(true), 0);
     // Si el tema está en 'system' (por defecto o rastro viejo), lo normalizamos 
     // para que coincida con una de las opciones disponibles (light/dark).
     if (theme === 'system' && resolvedTheme) {
       setTheme(resolvedTheme);
     }
+    return () => window.clearTimeout(timer);
   }, [theme, resolvedTheme, setTheme]);
 
   if (!mounted) return trigger;

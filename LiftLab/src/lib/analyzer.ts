@@ -18,7 +18,7 @@ export interface AnalysisResults {
 export function analyzeRoutine(
   days: WorkoutDay[], 
   customExercises: ExerciseDef[], 
-  t: Record<string, any>, 
+  t: { dash_ins_nodata?: string }, 
   lang: "en" | "es" = "en"
 ): AnalysisResults {
   const setsPerMuscle: Partial<Record<MuscleGroup, number>> = {};
@@ -178,4 +178,3 @@ export function analyzeRoutine(
     efficiencyScore
   };
 }
-

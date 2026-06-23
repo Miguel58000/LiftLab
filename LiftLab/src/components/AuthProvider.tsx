@@ -21,12 +21,10 @@ interface AuthCtx {
 const AuthContext = createContext<AuthCtx>({ user: null, loading: true, signInWithGoogle: async () => { }, signInWithEmail: async () => ({} as UserCredential), signUpWithEmail: async () => ({} as UserCredential), logout: async () => { } });
 export const useAuth = () => useContext(AuthContext);
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+function debounce<TArgs extends unknown[]>(fn: (...args: TArgs) => void, ms: number): (...args: TArgs) => void {
   let t: ReturnType<typeof setTimeout>;
-  return ((...args: any[]) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }) as T;
+  return (...args: TArgs) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
