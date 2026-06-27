@@ -1,4 +1,4 @@
-# LiftLab (PulseSplit)
+# LiftLab
 
 > 🌐 **Languages / Idiomas:** [English](#liftlab) · [Español](#liftlab)
 
@@ -42,7 +42,7 @@ LiftLab is a next-generation fitness routine analyzer and tracking application. 
 
 ```text
 LiftLab/
-├── package.json          # Root scripts runner (delegates to pulsesplit/)
+├── package.json          # Root scripts runner (delegates to LiftLab/)
 ├── LiftLab/           # Main Next.js project folder
 │   ├── src/
 │   │   ├── app/          # App Router pages and page-specific layouts
@@ -149,13 +149,13 @@ npm run start
 
 ---
 
-# LiftLab (PulseSplit)
+# LiftLab
 
 > 🌐 **Idiomas / Languages:** [Español](#liftlab) · [English](#liftlab)
 
 LiftLab es una aplicación de análisis y seguimiento de rutinas de entrenamiento de próxima generación. Permite a los usuarios diseñar su división de entrenamiento día a día, ofrece sugerencias inteligentes y métricas clave (como series semanales por grupo muscular, puntuación de balance y puntuación de eficiencia), estima la duración del entrenamiento y calcula recomendaciones nutricionales (macros) en función del volumen de entrenamiento.
 
-El proyecto está estructurado con la aplicación Next.js dentro del subdirectorio `/pulsesplit`, con scripts de ejecución disponibles en la raíz del workspace.
+El proyecto está estructurado con la aplicación Next.js dentro del subdirectorio `/LiftLab`, con scripts de ejecución disponibles en la raíz del workspace.
 
 ---
 
@@ -194,7 +194,7 @@ El proyecto está estructurado con la aplicación Next.js dentro del subdirector
 
 ```text
 LiftLab/
-├── package.json          # Scripts raíz (delegan a pulsesplit/)
+├── package.json          # Scripts raíz (delegan a LiftLab/)
 ├── LiftLab/           # Carpeta principal del proyecto Next.js
 │   ├── src/
 │   │   ├── app/          # Páginas y layouts del App Router
