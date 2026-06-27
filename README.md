@@ -241,7 +241,14 @@ npm run start
 
 ## 📜 Historial de Versiones
 
-### `v1.3.0` (Lanzamiento Actual - 20/06/2026)
+### `v1.4.0` (Lanzamiento Actual - 27/06/2026)
+
+- **Alertas del Timer de Descanso**: El timer de descanso ahora cambia a rojo y emite un sonido y vibración cuando se alcanza el objetivo de descanso, mientras sigue contando hacia arriba para saber el tiempo exacto que tomaste.
+- **Repeticiones Parciales (Decimales)**: Se agregó soporte para repeticiones decimales (ej: 8.5 reps) usando los botones de +/- o ingresándolo manualmente.
+- **Creación de Ejercicios Integrada**: Se agregó un diálogo optimizado para móviles directamente dentro del tracker activo para crear y agregar ejercicios personalizados sin abandonar la rutina.
+- **Refactorización de Arquitectura**: La lógica pura matemática y de algoritmos de entrenamiento fue extraída a `workout-logic.ts`, reduciendo drásticamente el tamaño del componente principal y mejorando su mantenimiento.
+
+### `v1.3.0` (Lanzamiento Anterior - 20/06/2026)
 
 - **Eliminación de Series**: Posibilidad de eliminar series individuales dentro del tracker en vivo. Desplaza correctamente los inputs y asegura mantener al menos 1 serie por ejercicio.
 - **Reordenar Ejercicios en el Tracker**: Añadido soporte para subir/bajar ejercicios dinámicamente en el tracker a través de flechas de control, igual que en el constructor de rutinas (Builder).
