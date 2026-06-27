@@ -118,7 +118,7 @@ npm run start
 - **In-Workout Creation**: Users can now create and define new custom exercises while tracking a workout.
 - **Exit Confirmation**: New custom dialog for exiting sessions with options to save progress or discard.
 
-### `v1.1.0` (Current Release - 2026-06-07)
+### `v1.1.0` (Previous Release - 2026-06-07)
 
 - **Advanced Progress Metrics**: Integrated Sets, Weight per Rep, and Speed Deviation (Cardio Consistency) into charts and data tables.
 - **Warm-up Set Logic**: Integrated a "Warm-up" toggle for sets, allowing users to track preparation without inflating effective volume metrics.
@@ -262,7 +262,7 @@ npm run start
 - **Creación durante el Entreno**: Los usuarios pueden crear y definir nuevos ejercicios personalizados mientras trackean su sesión.
 - **Confirmación de Salida**: Nuevo diálogo personalizado al cerrar sesiones con opciones para guardar progreso o descartar.
 
-### `v1.1.0` (Versión Actual - 07/06/2026)
+### `v1.1.0` (Lanzamiento anterior - 07/06/2026)
 
 - **Métricas de Progreso Avanzadas**: Inclusión de Series, Peso por Repetición y Desvío de Velocidad (Consistencia) en gráficos y tablas de progreso.
 - **Lógica de Series de Aproximación**: Implementación de un selector para series de calentamiento, permitiendo el registro sin inflar el volumen efectivo.
