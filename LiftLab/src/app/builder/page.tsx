@@ -75,7 +75,6 @@ export default function BuilderPage() {
     return CATEGORY_TRANSLATIONS[lang][category];
   }
 
-  // Smart Optimizer States
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [assistantStep, setAssistantStep] = useState(0); // 0: Days, 1: Strengths, 2: Goals, 3: Suggestions/Preview
   const [assistantDays, setAssistantDays] = useState(3);
@@ -84,7 +83,6 @@ export default function BuilderPage() {
   const [primaryGoal, setPrimaryGoal] = useState<MuscleGroup | "">("");
   const [secondaryGoal, setSecondaryGoal] = useState<MuscleGroup | "">("");
 
-  // Derived arrays
   const assistantGoals = [primaryGoal, secondaryGoal].filter(Boolean) as MuscleGroup[];
   const [previewSuggested, setPreviewSuggested] = useState<SuggestedDay[]>([]);
 
@@ -115,7 +113,6 @@ export default function BuilderPage() {
   const [customExGrip, setCustomExGrip] = useState<GripType>("Any");
   const [customExSecondary, setCustomExSecondary] = useState<MuscleGroup[]>([]);
 
-  // Inline exercise edit state
   const [editingExId, setEditingExId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingMusclesPrimary, setEditingMusclesPrimary] = useState<MuscleGroup | "">("");
@@ -124,7 +121,6 @@ export default function BuilderPage() {
 
   const allExercises = useMemo(() => [...EXERCISE_DATABASE, ...customExercises], [customExercises]);
 
-  // Rules of Hooks: These must be declared before any conditional returns
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | "all">("all");
 

@@ -2,15 +2,17 @@
 
 import { useStore, WorkoutDay, LoggedExercise, LoggedSet, WorkoutSession, UserProfile, RoutineExercise } from "@/store/useStore";
 import { formatWeight, formatDistance, formatSpeed, getWeightInUnit, getDistanceInUnit, convertWeightInputToKg, convertDistanceInputToKm } from "@/lib/units";
-import { EXERCISE_DATABASE, getExerciseName, MuscleGroup, ExerciseDef } from "@/lib/exercises";
+import { EXERCISE_DATABASE, getExerciseName, MuscleGroup, ExerciseDef, GripType } from "@/lib/exercises";
 import { translations } from "@/lib/i18n";
+import { getSessionVolume, getExVolume, getTrend, getVolumeAlerts, calcEfficiencyScore, PRType, checkPRs } from "@/lib/workout-logic";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil, ChevronUp, ChevronDown, PlusCircle, Bell } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,88 +39,6 @@ function getMuscleLabel(muscle: MuscleGroup, lang: "en" | "es") {
   return lang === "es" ? (MUSCLE_NAMES_ES[muscle] ?? muscle) : muscle;
 }
 
-// — Helper: Session Volume —
-function getSessionVolume(session: WorkoutSession, allExercises: ExerciseDef[]) {
-  return session.exercises.reduce((acc, ex) => {
-    const def = allExercises.find(e => e.id === ex.exerciseId);
-    if (def?.category.includes('Cardio')) return acc;
-    return acc + ex.loggedSets.filter(s => s.completed).reduce((s, ls) => s + ls.reps * ls.weightKg, 0);
-  }, 0);
-}
-
-// — Helper: Exercise Volume —
-function getExVolume(ex: LoggedExercise) {
-  return ex.loggedSets.filter(s => s.completed).reduce((s, ls) => s + ls.reps * ls.weightKg, 0);
-}
-
-// — Helper: Trend Logic (5% threshold) —
-function getTrend(curr: number, prev: number): 'up' | 'down' | 'neutral' {
-  if (!prev || prev === 0) return 'neutral';
-  const diff = (curr - prev) / prev;
-  if (diff >= 0.05) return 'up';
-  if (diff <= -0.05) return 'down';
-  return 'neutral';
-}
-
-// — Helper: Volume Alerts —
-function getVolumeAlerts(currentSession: WorkoutSession, history: WorkoutSession[], allExercises: ExerciseDef[], lang: 'en' | 'es') {
-  const sameDayHistory = history
-    .filter(s => s.dayId === currentSession.dayId)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  // Buscamos la posición de la sesión actual en el historial para mirar hacia atrás
-  const currIdx = sameDayHistory.findIndex(s => s.id === currentSession.id);
-  const pastSessions = currIdx === -1 ? sameDayHistory : sameDayHistory.slice(currIdx + 1);
-
-  const alerts: string[] = [];
-  const currVol = getSessionVolume(currentSession, allExercises);
-
-  if (currVol === 0 || pastSessions.length === 0) return alerts;
-
-  // 1. Check 3 consecutive drops
-  if (pastSessions.length >= 3) {
-    const v1 = getSessionVolume(pastSessions[0], allExercises);
-    const v2 = getSessionVolume(pastSessions[1], allExercises);
-    const v3 = getSessionVolume(pastSessions[2], allExercises);
-
-    const t1 = getTrend(currVol, v1);
-    const t2 = getTrend(v1, v2);
-    const t3 = getTrend(v2, v3);
-
-    if (t1 === 'down' && t2 === 'down' && t3 === 'down') {
-      alerts.push(lang === 'es'
-        ? "Se detectó una caída significativa en el volumen por 3 entrenamientos consecutivos. Considera una semana de descarga (deload) o revisa tu descanso y nutrición."
-        : "Significant volume drop detected for 3 consecutive sessions. Consider a deload week or review your rest and nutrition.");
-    }
-  }
-
-  // 2. Plateau check (2 weeks horizontal)
-  const twoWeeksMs = 14 * 86400000;
-  const currDate = new Date(currentSession.date).getTime();
-  const lastTwoWeeks = sameDayHistory.filter(s => {
-    const d = new Date(s.date).getTime();
-    return d <= currDate && (currDate - d) <= twoWeeksMs;
-  });
-
-  if (lastTwoWeeks.length >= 3) { // Al menos 3 sesiones en 2 semanas para ser una tendencia real
-    let alwaysNeutral = true;
-    for (let i = 0; i < lastTwoWeeks.length - 1; i++) {
-      const vC = getSessionVolume(lastTwoWeeks[i], allExercises);
-      const vP = getSessionVolume(lastTwoWeeks[i + 1], allExercises);
-      if (getTrend(vC, vP) !== 'neutral') {
-        alwaysNeutral = false;
-        break;
-      }
-    }
-    if (alwaysNeutral) {
-      alerts.push(lang === 'es'
-        ? "Estás en una meseta (volumen estable por 2 semanas). Sugerencias: varía el rango de repeticiones, cambia el orden de ejercicios o reduce ligeramente los descansos."
-        : "You're in a plateau (stable volume for 2 weeks). Suggestions: vary rep ranges, change exercise order, or slightly reduce rest times.");
-    }
-  }
-
-  return alerts;
-}
 
 function TrendArrow({ trend }: { trend: 'up' | 'down' | 'neutral' }) {
   if (trend === 'up') return <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
@@ -126,175 +46,9 @@ function TrendArrow({ trend }: { trend: 'up' | 'down' | 'neutral' }) {
   return <Minus className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
 }
 
-// — Efficiency Score Calculator —
-function calcEfficiencyScore(
-  exercises: LoggedExercise[],
-  history: WorkoutSession[],
-  dayId: string
-): number {
-  let score = 0;
-  let totalSets = 0;
-  let completedSets = 0;
 
-  exercises.forEach(ex => {
-    totalSets += ex.plannedSets;
-    completedSets += ex.loggedSets.filter(s => s.completed).length;
-  });
 
-  if (totalSets === 0) return 0;
 
-  // Completion rate (40% weight)
-  const completionRate = completedSets / totalSets;
-  score = completionRate * 40;
-
-  // Progressive overload vs last same-day session (40% weight)
-  // Buscamos la última sesión registrada para este mismo día de rutina
-  const lastSession = [...history].reverse().find(s => s.dayId === dayId);
-  if (lastSession) {
-    let progressCount = 0;
-    let matchCount = 0;
-    exercises.forEach(ex => {
-      const prevEx = lastSession.exercises.find(e => e.exerciseId === ex.exerciseId);
-      if (prevEx) {
-        matchCount++;
-        const def = EXERCISE_DATABASE.find(e => e.id === ex.exerciseId);
-        const isCardio = def?.category.includes('Cardio');
-        // Para cardio usamos distancia total como volumen de progreso
-        const prevVolume = prevEx.loggedSets.filter(s => s.completed).reduce((s, ls) => s + (isCardio ? ls.reps : ls.reps * ls.weightKg), 0);
-        const currVolume = ex.loggedSets.filter(s => s.completed).reduce((s, ls) => s + (isCardio ? ls.reps : ls.reps * ls.weightKg), 0);
-        if (currVolume > prevVolume) progressCount++;
-      }
-    });
-    const progressRate = matchCount > 0 ? progressCount / matchCount : 0;
-    score += progressRate * 40;
-  } else {
-    // No history yet – reward full completion
-    score += completionRate * 40;
-  }
-
-  // Rest compliance – penalize if very few sets logged with weight (20% weight)
-  const weightedSets = exercises.flatMap(e => e.loggedSets.filter(s => s.completed && s.weightKg > 0)).length;
-  const weightRate = completedSets > 0 ? weightedSets / completedSets : 0;
-  score += weightRate * 20;
-
-  return Math.min(100, Math.round(score));
-}
-
-// — PR Checker Helper —
-type PRType = 'weight' | 'reps' | 'volume' | 'km' | 'speed';
-
-function checkPRs(session: WorkoutSession, history: WorkoutSession[], allExercises: ExerciseDef[]) {
-  const prs: Record<string, PRType[]> = {};
-
-  session.exercises.forEach(ex => {
-    const def = allExercises.find(e => e.id === ex.exerciseId);
-    const isBodyweight = def?.category === 'Bodyweight';
-    const isCardio = def?.category.includes('Cardio');
-    const currentSets = ex.loggedSets.filter(s => s.completed);
-    if (currentSets.length === 0) return;
-
-    const types = new Set<PRType>();
-
-    // 1. Weight PR (Peso levantado máximo en una serie)
-    const currentMaxWeight = Math.max(...currentSets.map(s => s.weightKg), 0);
-
-    // 2. Volume PR (Peso total/Volumen del ejercicio en la sesión)
-    const currentTotalVolume = currentSets.reduce((acc, s) => acc + (s.reps * s.weightKg), 0);
-
-    if (isCardio) {
-      let maxKm = 0;
-      let maxSpeed = 0;
-      let maxTotalKm = 0;
-
-      history.forEach(ps => {
-        if (ps.id === session.id) return;
-        const prevEx = ps.exercises.find(e => e.exerciseId === ex.exerciseId);
-        if (prevEx) {
-          const done = prevEx.loggedSets.filter(s => s.completed);
-          done.forEach(s => {
-            if (s.reps > maxKm) maxKm = s.reps;
-            const speed = s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0;
-            if (speed > maxSpeed) maxSpeed = speed;
-          });
-          const total = done.reduce((a, b) => a + b.reps, 0);
-          if (total > maxTotalKm) maxTotalKm = total;
-        }
-      });
-
-      const currMaxKm = Math.max(...currentSets.map(s => s.reps));
-      const currMaxSpeed = Math.max(...currentSets.map(s => s.weightKg > 0 ? (s.reps / (s.weightKg / 3600)) : 0));
-      const currTotalKm = currentSets.reduce((a, b) => a + b.reps, 0);
-
-      if (currMaxKm > maxKm && currMaxKm > 0) types.add('km');
-      if (currMaxSpeed > maxSpeed && currMaxSpeed > 0) types.add('speed');
-      if (currTotalKm > maxTotalKm && currTotalKm > 0) types.add('volume');
-
-      if (types.size > 0) prs[ex.exerciseId] = Array.from(types);
-      return;
-    }
-
-    // 3. Reps PR (Lógica según tipo de ejercicio)
-    let historicalMax = 0;
-    let histMaxVolume = 0;
-    let histMaxRepsGlobal = 0;
-
-    history.forEach(prevSession => {
-      if (prevSession.id === session.id) return; // Skip current
-      prevSession.exercises.forEach(prevEx => {
-        if (prevEx.exerciseId === ex.exerciseId) {
-          const prevSets = prevEx.loggedSets.filter(s => s.completed);
-          if (prevSets.length === 0) return;
-
-          const pMaxW = Math.max(...prevSets.map(s => s.weightKg), 0);
-          const pVol = prevSets.reduce((acc, s) => acc + (s.reps * s.weightKg), 0);
-          const pMaxR = Math.max(...prevSets.map(s => s.reps), 0);
-
-          if (pMaxW > historicalMax) historicalMax = pMaxW;
-          if (pVol > histMaxVolume) histMaxVolume = pVol;
-          if (pMaxR > histMaxRepsGlobal) histMaxRepsGlobal = pMaxR;
-        }
-      });
-    });
-
-    if (currentMaxWeight > historicalMax && currentMaxWeight > 0) {
-      types.add('weight');
-    }
-
-    if (currentTotalVolume > histMaxVolume && currentTotalVolume > 0) {
-      types.add('volume');
-    }
-
-    if (isBodyweight) {
-      const currentMaxReps = Math.max(...currentSets.map(s => s.reps), 0);
-      if (currentMaxReps > histMaxRepsGlobal && currentMaxReps > 0) {
-        types.add('reps');
-      }
-    } else {
-      // "si el peso levantado es el mismo que una vez anterior pero con más repeticiones"
-      for (const s of currentSets) {
-        if (s.weightKg <= 0) continue;
-        let bestRepsAtThisWeight = 0;
-        history.forEach(psess => {
-          if (psess.id === session.id) return;
-          psess.exercises.find(pe => pe.exerciseId === ex.exerciseId)?.loggedSets.forEach(ls => {
-            if (ls.completed && ls.weightKg === s.weightKg && ls.reps > bestRepsAtThisWeight) bestRepsAtThisWeight = ls.reps;
-          });
-        });
-        if (bestRepsAtThisWeight > 0 && s.reps > bestRepsAtThisWeight) {
-          types.add('reps');
-          break;
-        }
-      }
-    }
-
-    if (types.size > 0) {
-      prs[ex.exerciseId] = Array.from(types);
-    }
-  });
-  return prs;
-}
-
-// — Calendar View Component —
 function HistoryCalendar({ history, onBack, language, customExercises }: { history: WorkoutSession[], onBack: () => void, language: 'en' | 'es', customExercises: ExerciseDef[] }) {
   const { weightUnit, distanceUnit } = useStore();
   const speedUnit = distanceUnit === 'mi' ? 'mi/h' : 'km/h';
@@ -320,7 +74,6 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
     return map;
   }, [history, viewDate]);
 
-  // Helper to find previous session volume for same day
   const getPrevSessionVolume = (session: WorkoutSession) => {
     const sameDay = history
       .filter(s => s.dayId === session.dayId && new Date(s.date).getTime() < new Date(session.date).getTime())
@@ -481,7 +234,6 @@ function HistoryCalendar({ history, onBack, language, customExercises }: { histo
   );
 }
 
-// — Progress Analysis View —
 function ExerciseProgressView({ history, onBack, language, customExercises }: { history: WorkoutSession[], onBack: () => void, language: 'en' | 'es', customExercises: ExerciseDef[] }) {
   const { weightUnit, distanceUnit } = useStore();
   const speedUnit = distanceUnit === 'mi' ? 'mi/h' : 'km/h';
@@ -672,7 +424,6 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
   );
 }
 
-// — Body Metrics Screen —
 function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
   const profile = useStore(s => s.profile) as UserProfile | null;
   const setProfile = useStore(s => s.setProfile);
@@ -835,7 +586,6 @@ function BodyMetricsScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-// — Day Selection Screen —
 function DaySelectionScreen({ onSelect, onViewHistory, onViewProgress }: { onSelect: (day: WorkoutDay) => void, onViewHistory: () => void, onViewProgress: () => void }) {
   const days = useStore(s => s.days);
   const language = useStore(s => s.language);
@@ -1038,7 +788,6 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
   );
 }
 
-// — Active Workout Session —
 function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; onFinish: (exercises: LoggedExercise[], durationSecs: number) => void; onCancel: () => void; onPause: () => void }) {
   const customExercises = useStore(s => s.customExercises);
   const language = useStore(s => s.language) as "en" | "es";
@@ -1058,7 +807,21 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
 
   const [restTime, setRestTime] = useState(0);
   const [isResting, setIsResting] = useState(false);
+  const [restTargetSecs, setRestTargetSecs] = useState(0);
+  const [restAlertShown, setRestAlertShown] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+
+  // Custom exercise creation state
+  const addCustomExercise = useStore(s => s.addCustomExercise);
+  const [showCreateExDialog, setShowCreateExDialog] = useState(false);
+  const [newExName, setNewExName] = useState('');
+  const [newExMuscle, setNewExMuscle] = useState<MuscleGroup>('Chest');
+  const [newExCategory, setNewExCategory] = useState<string>('Dumbbell');
+  const [newExGrip, setNewExGrip] = useState<GripType>('Any');
+
+  const MUSCLE_OPTIONS: MuscleGroup[] = ['Chest', 'Upper Chest', 'Lats', 'Upper Back', 'Lower Back', 'Traps', 'Front Delts', 'Lateral Delts', 'Rear Delts', 'Serratus', 'Biceps', 'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Obliques', 'Adductors'];
+  const CATEGORY_OPTIONS = ['Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Plyometrics'];
+  const GRIP_OPTIONS: GripType[] = ['Pronated', 'Supinated', 'Neutral', 'Mixed', 'Wide', 'Close', 'Any'];
 
   useEffect(() => {
     let restInterval: ReturnType<typeof setInterval> | null = null;
@@ -1067,6 +830,44 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     }
     return () => { if (restInterval) clearInterval(restInterval); };
   }, [isResting]);
+
+  // Rest alert: beep + vibrate when rest target is reached
+  useEffect(() => {
+    if (isResting && restTargetSecs > 0 && restTime >= restTargetSecs && !restAlertShown) {
+      setRestAlertShown(true);
+      // Audio beep via Web Audio API
+      try {
+        const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.value = 0.3;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+        // Second beep
+        setTimeout(() => {
+          try {
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.frequency.value = 1100;
+            osc2.type = 'sine';
+            gain2.gain.value = 0.3;
+            osc2.start();
+            osc2.stop(ctx.currentTime + 0.3);
+          } catch { /* ignore */ }
+        }, 350);
+      } catch { /* Web Audio not available */ }
+      // Vibrate if supported
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    }
+  }, [isResting, restTime, restTargetSecs, restAlertShown]);
 
   const sessionStartTime = useRef(activeSession?.startTime || new Date().toISOString());
 
@@ -1332,6 +1133,11 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     if (field === 'completed' && value === true) {
       setIsResting(true);
       setRestTime(0);
+      setRestAlertShown(false);
+
+      // Find rest target for this exercise
+      const routineEx = day.exercises.find(e => e.exerciseId === updated[exIdx].exerciseId);
+      setRestTargetSecs(routineEx?.restSecs || 0);
 
       const currentEx = updated[exIdx];
       const currentSet = currentEx.loggedSets[setIdx];
@@ -1441,7 +1247,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
       return;
     }
 
-    const allowsDecimals = field === 'weightKg' || (field === 'reps' && isCardio);
+    const allowsDecimals = field === 'weightKg' || field === 'reps';
     const sanitized = allowsDecimals ? val.replace(/[^0-9.,]/g, '') : val.replace(/[^0-9]/g, '');
 
     let normalized = sanitized.replace(/,/g, '.');
@@ -1546,12 +1352,22 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {isResting && (
-                <div onClick={() => setIsResting(false)} className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-emerald-500 text-white animate-pulse cursor-pointer hover:bg-emerald-600 transition-colors">
-                  <span className="text-[10px] uppercase tracking-wider leading-none mb-1">{language === 'es' ? 'Descanso' : 'Rest'}</span>
-                  <span className="text-lg font-bold font-mono leading-none">{formatTime(restTime)}</span>
-                </div>
-              )}
+              {isResting && (() => {
+                const isOvertime = restTargetSecs > 0 && restTime >= restTargetSecs;
+                return (
+                  <div onClick={() => setIsResting(false)} className={`flex flex-col items-center px-3 py-1.5 rounded-lg text-white animate-pulse cursor-pointer transition-colors ${isOvertime ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+                    <span className="text-[10px] uppercase tracking-wider leading-none mb-1">
+                      {isOvertime
+                        ? (language === 'es' ? '¡Tiempo!' : "Time's up!")
+                        : (language === 'es' ? 'Descanso' : 'Rest')}
+                    </span>
+                    <span className="text-lg font-bold font-mono leading-none">{formatTime(restTime)}</span>
+                    {isOvertime && restTargetSecs > 0 && (
+                      <span className="text-[9px] opacity-80 font-mono leading-none mt-0.5">+{formatTime(restTime - restTargetSecs)}</span>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t.tracker_efficiency}</span>
                 <span className={`text-lg font-bold ${liveScore >= 80 ? 'text-emerald-500' : liveScore >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{liveScore}</span>
@@ -1714,17 +1530,17 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
 
                         {/* Reps spinner */}
                         <div className="flex items-center gap-0.5 sm:gap-1 justify-center">
-                          <button onClick={() => updateSet(exIdx, si, 'reps', Math.max(0, s.reps - (isCardio ? 0.5 : 1)))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                          <button onClick={() => updateSet(exIdx, si, 'reps', Math.max(0, s.reps - 0.5))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                             <Minus className="w-3 h-3" />
                           </button>
                           <input
                             type="text"
-                            inputMode={isCardio ? "decimal" : "numeric"}
-                            value={inputStrings[`${exIdx}-${si}-reps`] ?? (s.reps === 0 ? '' : (isCardio ? getDistanceInUnit(s.reps, distanceUnit).toString() : s.reps.toString()))}
+                            inputMode="decimal"
+                            value={inputStrings[`${exIdx}-${si}-reps`] ?? (s.reps === 0 ? '' : (isCardio ? getDistanceInUnit(s.reps, distanceUnit).toString() : (Number.isInteger(s.reps) ? s.reps.toString() : s.reps.toFixed(1))))}
                             onChange={(e) => handleManualInput(exIdx, si, 'reps', e.target.value, weightUnit, distanceUnit)}
                             className="w-8 sm:w-12 h-8 text-center text-sm font-bold bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 border-0"
                           />
-                          <button onClick={() => updateSet(exIdx, si, 'reps', s.reps + (isCardio ? convertDistanceInputToKm(0.5, distanceUnit) : 1))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                          <button onClick={() => updateSet(exIdx, si, 'reps', s.reps + (isCardio ? convertDistanceInputToKm(0.5, distanceUnit) : 0.5))} className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
@@ -1789,17 +1605,138 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
         })}
 
         {/* Add exercise during workout */}
-        <div className="pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+        <div className="pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800 space-y-2">
           <select
-            className="w-full h-12 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-sm font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-12 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-sm font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-500 text-center"
             onChange={(e) => { addExerciseMidWorkout(e.target.value); e.target.value = ""; }}
             defaultValue=""
           >
-            <option value="" disabled>+ {language === 'es' ? 'Añadir Ejercicio Alternativo' : 'Add Alternative Exercise'}</option>
+            <option value="" disabled>+ {language === 'es' ? 'Añadir Ejercicio' : 'Add Exercise'}</option>
             {allExercises.map(ex => (
               <option key={ex.id} value={ex.id}>{getExerciseName(ex, language)}</option>
             ))}
           </select>
+
+          {/* Create custom exercise button */}
+          <Button
+            variant="outline"
+            onClick={() => setShowCreateExDialog(true)}
+            className="w-full h-10 text-xs font-bold border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:text-emerald-500 hover:border-emerald-500"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            {language === 'es' ? 'Crear Ejercicio Personalizado' : 'Create Custom Exercise'}
+          </Button>
+
+          {/* Create custom exercise dialog */}
+          <Dialog open={showCreateExDialog} onOpenChange={setShowCreateExDialog}>
+            <DialogContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 max-w-sm mx-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <PlusCircle className="w-5 h-5 text-emerald-500" />
+                  {language === 'es' ? 'Nuevo Ejercicio' : 'New Exercise'}
+                </DialogTitle>
+                <DialogDescription>
+                  {language === 'es' ? 'Crea un ejercicio personalizado y agrégalo a tu sesión.' : 'Create a custom exercise and add it to your session.'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-bold text-zinc-500 uppercase">{language === 'es' ? 'Nombre' : 'Name'}</Label>
+                  <Input
+                    value={newExName}
+                    onChange={e => setNewExName(e.target.value)}
+                    placeholder={language === 'es' ? 'Ej: Press Inclinado Máquina' : 'E.g: Incline Machine Press'}
+                    className="bg-white dark:bg-zinc-900"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-bold text-zinc-500 uppercase">{language === 'es' ? 'Músculo Principal' : 'Primary Muscle'}</Label>
+                  <select
+                    value={newExMuscle}
+                    onChange={e => setNewExMuscle(e.target.value as MuscleGroup)}
+                    className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                  >
+                    {MUSCLE_OPTIONS.map(m => (
+                      <option key={m} value={m}>{getMuscleLabel(m, language)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs font-bold text-zinc-500 uppercase">{language === 'es' ? 'Categoría' : 'Category'}</Label>
+                    <select
+                      value={newExCategory}
+                      onChange={e => setNewExCategory(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                    >
+                      {CATEGORY_OPTIONS.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs font-bold text-zinc-500 uppercase">Grip</Label>
+                    <select
+                      value={newExGrip}
+                      onChange={e => setNewExGrip(e.target.value as GripType)}
+                      className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                    >
+                      {GRIP_OPTIONS.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateExDialog(false)}
+                  className="flex-1"
+                >
+                  {language === 'es' ? 'Cancelar' : 'Cancel'}
+                </Button>
+                <Button
+                  disabled={!newExName.trim()}
+                  onClick={() => {
+                    const id = `custom_${Date.now()}`;
+                    addCustomExercise({
+                      id,
+                      name: newExName.trim(),
+                      primaryMuscle: newExMuscle,
+                      secondaryMuscles: [],
+                      category: newExCategory as ExerciseDef['category'],
+                      grip: newExGrip,
+                      estimatedDurationPerSetSecs: 45
+                    });
+                    // Add to current session immediately
+                    const newEx: LoggedExercise = {
+                      exerciseId: id,
+                      plannedSets: 3,
+                      plannedReps: 10,
+                      loggedSets: Array.from({ length: 3 }, () => ({
+                        reps: 10,
+                        weightKg: 0,
+                        completed: false,
+                        isWarmup: false
+                      }))
+                    };
+                    setExercises(prev => [...prev, newEx]);
+                    // Reset form
+                    setNewExName('');
+                    setNewExMuscle('Chest');
+                    setNewExCategory('Dumbbell');
+                    setNewExGrip('Any');
+                    setShowCreateExDialog(false);
+                  }}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white dark:text-black font-bold"
+                >
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {language === 'es' ? 'Crear y Agregar' : 'Create & Add'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Finish button */}
@@ -1814,7 +1751,6 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
   );
 }
 
-// — Summary Screen —
 function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: () => void }) {
   const language = useStore(s => s.language) as "en" | "es";
   const customExercises = useStore(s => s.customExercises);
@@ -2087,7 +2023,6 @@ function WorkoutSummary({ session, onDone }: { session: WorkoutSession; onDone: 
   );
 }
 
-// — Main Page —
 export default function TrackerPage() {
   const saveWorkoutSession = useStore(s => s.saveWorkoutSession);
   const activeSession = useStore(s => s.activeSession);

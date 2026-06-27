@@ -391,9 +391,8 @@ export const translations = {
   }
 };
 
-// ─── Centralised muscle-name helper ───────────────────────────────────────────
-// Single source of truth for all files that need to translate MuscleGroup keys.
-// Previously duplicated in analyzer.ts, onboarding/page.tsx, and tracker/page.tsx.
+
+
 export const MUSCLE_NAMES_ES: Record<string, string> = {
   Chest: "Pecho", "Upper Chest": "Pecho Superior", Lats: "Dorsales",
   "Upper Back": "Espalda Alta", "Lower Back": "Lumbar", Traps: "Trapecio",

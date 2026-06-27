@@ -97,7 +97,14 @@ npm run start
 
 ## 📜 Version History
 
-### `v1.3.0` (Latest Release - 2026-06-20)
+### `v1.4.0` (Latest Release - 2026-06-27)
+
+- **Rest Timer Alerts**: The rest timer now turns red and emits an audio beep and vibration when the target rest duration is met, while allowing the timer to keep counting up.
+- **Partial Reps**: Added support for decimal repetitions (e.g., 8.5 reps) using the +/- buttons or manual entry for better tracking precision.
+- **Inline Custom Exercises**: Added a mobile-optimized dialog directly inside the active workout tracker to create and insert new custom exercises without navigating away.
+- **Architecture Refactoring**: Decoupled core workout logic into `workout-logic.ts` pure utility functions, dramatically reducing component complexity and improving testability.
+
+### `v1.3.0` (Previous Release - 2026-06-20)
 
 - **Set Deletion**: Added the ability to delete individual sets (series) in the active workout tracker. It shifts input states properly and maintains a minimum of 1 set per exercise.
 - **Exercise Reordering in Tracker**: Added move up/down chevron controllers in active workout tracker card headers to reorder exercises dynamically, aligning with the Workout Builder.
