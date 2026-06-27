@@ -470,7 +470,7 @@ export default function DashboardPage() {
       )}
 
       {macros && bestGoal && (
-        <Card className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border-emerald-200 dark:border-emerald-800/40 mb-8 overflow-hidden">
+        <Card className="bg-linear-to-br from-emerald-500/5 to-teal-500/5 border-emerald-200 dark:border-emerald-800/40 mb-8 overflow-hidden">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -608,7 +608,7 @@ export default function DashboardPage() {
 
       {/* --- Resumen de Cardio Independiente --- */}
       {analysis.totalCardioMinutes > 0 && (
-        <Card className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border-blue-200 dark:border-blue-800/40 mb-8 overflow-hidden">
+        <Card className="bg-linear-to-r from-blue-500/5 to-indigo-500/5 border-blue-200 dark:border-blue-800/40 mb-8 overflow-hidden">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
@@ -675,7 +675,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-80 w-full min-w-0 relative">
             <div className="w-full h-full min-w-0 min-h-0 absolute inset-0 p-4">
-              <ResponsiveContainer key={muscleData.length} width="99%" height="100%">
+              <ResponsiveContainer key={muscleData.length} width="99%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={muscleData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <XAxis dataKey="muscle" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
@@ -697,7 +697,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-80 w-full min-w-0 relative flex items-center justify-center">
             <div className="w-full h-full min-w-0 min-h-0 absolute inset-0 p-4">
-              <ResponsiveContainer key={muscleData.length} width="99%" height="100%">
+              <ResponsiveContainer key={muscleData.length} width="99%" height="100%" minWidth={0} minHeight={0}>
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={muscleData}>
                   <PolarGrid stroke="#27272a" />
                   <PolarAngleAxis dataKey="muscle" tick={{ fill: '#a1a1aa', fontSize: 11 }} />

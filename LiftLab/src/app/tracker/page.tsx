@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil, ChevronUp, ChevronDown, PlusCircle, Bell } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Dumbbell, Play, Trophy, X, Check, Minus, Plus, Flame, Calendar as CalendarIcon, ChevronLeft, Activity, TrendingUp, TrendingDown, Info, AlertTriangle, Trash2, Pencil, ChevronUp, ChevronDown, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -331,7 +331,7 @@ function ExerciseProgressView({ history, onBack, language, customExercises }: { 
         <div className="space-y-8">
           <Card className="p-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div className="h-64 w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
@@ -713,7 +713,7 @@ function InlineExerciseProgress({ exId, history, language }: { exId: string, his
   return (
     <div className="pt-2">
       <div className="h-40 w-full mb-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
             <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
@@ -794,7 +794,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
   const workoutHistory = useStore(s => s.workoutHistory);
   const t = translations[language];
   const allExercises = useMemo(() => [...EXERCISE_DATABASE, ...customExercises], [customExercises]);
-  const updateExerciseGlobal = useStore(s => s.updateExerciseGlobal);
+  const updateExercisesByExerciseId = useStore(s => s.updateExercisesByExerciseId);
   const activeSession = useStore(s => s.activeSession);
   const setActiveSession = useStore(s => s.setActiveSession);
   const { weightUnit, distanceUnit } = useStore();
@@ -808,8 +808,21 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
   const [restTime, setRestTime] = useState(0);
   const [isResting, setIsResting] = useState(false);
   const [restTargetSecs, setRestTargetSecs] = useState(0);
-  const [restAlertShown, setRestAlertShown] = useState(false);
+  const restAlertShownRef = useRef(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+
+  const updateExerciseInDay = useStore(s => s.updateExerciseInDay);
+  const [activeRestRoutineExId, setActiveRestRoutineExId] = useState<string | null>(null);
+
+  const handleRestSecsChange = useCallback((routineExId: string, delta: number) => {
+    const routineEx = day.exercises.find(e => e.id === routineExId);
+    if (!routineEx) return;
+    const newRest = Math.max(0, routineEx.restSecs + delta);
+    updateExerciseInDay(day.id, routineExId, { restSecs: newRest });
+    if (isResting && activeRestRoutineExId === routineExId) {
+      setRestTargetSecs(newRest);
+    }
+  }, [day, updateExerciseInDay, isResting, activeRestRoutineExId]);
 
   // Custom exercise creation state
   const addCustomExercise = useStore(s => s.addCustomExercise);
@@ -833,8 +846,8 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
 
   // Rest alert: beep + vibrate when rest target is reached
   useEffect(() => {
-    if (isResting && restTargetSecs > 0 && restTime >= restTargetSecs && !restAlertShown) {
-      setRestAlertShown(true);
+    if (isResting && restTargetSecs > 0 && restTime >= restTargetSecs && !restAlertShownRef.current) {
+      restAlertShownRef.current = true;
       // Audio beep via Web Audio API
       try {
         const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -867,7 +880,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
         navigator.vibrate([200, 100, 200]);
       }
     }
-  }, [isResting, restTime, restTargetSecs, restAlertShown]);
+  }, [isResting, restTime, restTargetSecs]);
 
   const sessionStartTime = useRef(activeSession?.startTime || new Date().toISOString());
 
@@ -1133,11 +1146,12 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
     if (field === 'completed' && value === true) {
       setIsResting(true);
       setRestTime(0);
-      setRestAlertShown(false);
+      restAlertShownRef.current = false;
 
       // Find rest target for this exercise
       const routineEx = day.exercises.find(e => e.exerciseId === updated[exIdx].exerciseId);
       setRestTargetSecs(routineEx?.restSecs || 0);
+      setActiveRestRoutineExId(routineEx?.id || null);
 
       const currentEx = updated[exIdx];
       const currentSet = currentEx.loggedSets[setIdx];
@@ -1152,7 +1166,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
         if ((def.category as string) !== detectedCategory) {
           const isCustom = customExercises.some(ce => ce.id === def.id);
           if (isCustom) {
-            updateExerciseGlobal(def.id, { categoryOverride: detectedCategory as RoutineExercise["categoryOverride"] });
+            updateExercisesByExerciseId(def.id, { categoryOverride: detectedCategory as RoutineExercise["categoryOverride"] });
             setLatestPR({
               exercise: getExerciseName(def, language),
               type: language === 'es'
@@ -1188,7 +1202,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
         setTimeout(() => setLatestPR(null), 4000);
       }
     }
-  }, [exercises, checkSetPR, allExercises, language, thresholds, updateExerciseGlobal, customExercises, speedUnit]);
+  }, [exercises, checkSetPR, allExercises, language, thresholds, updateExercisesByExerciseId, customExercises, speedUnit, day.exercises]);
 
   const getWarmupValidation = (exIdx: number, setIdx: number) => {
     const ex = exercises[exIdx];
@@ -1355,7 +1369,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
               {isResting && (() => {
                 const isOvertime = restTargetSecs > 0 && restTime >= restTargetSecs;
                 return (
-                  <div onClick={() => setIsResting(false)} className={`flex flex-col items-center px-3 py-1.5 rounded-lg text-white animate-pulse cursor-pointer transition-colors ${isOvertime ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+                  <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg text-white animate-pulse transition-colors ${isOvertime ? 'bg-red-500 shadow-lg shadow-red-500/30' : 'bg-emerald-500'}`}>
                     <span className="text-[10px] uppercase tracking-wider leading-none mb-1">
                       {isOvertime
                         ? (language === 'es' ? '¡Tiempo!' : "Time's up!")
@@ -1422,10 +1436,21 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
                       </button>
                       {(() => {
                         const routineEx = day.exercises.find(e => e.exerciseId === ex.exerciseId);
-                        return routineEx && routineEx.restSecs > 0 ? (
-                          <span className="text-[10px] text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">
-                            ⏱️ {routineEx.restSecs}s rest
-                          </span>
+                        return routineEx ? (
+                          <div className="flex items-center ml-2 bg-zinc-100 dark:bg-zinc-800 rounded px-1" onClick={(e) => e.stopPropagation()}>
+                            <Clock className="w-3 h-3 text-zinc-400 mr-1" />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRestSecsChange(routineEx.id, -15); }}
+                              className="px-1 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded font-bold"
+                            >-</button>
+                            <span className="text-[10px] text-zinc-400 font-mono w-6 text-center">
+                              {routineEx.restSecs}s
+                            </span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRestSecsChange(routineEx.id, 15); }}
+                              className="px-1 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded font-bold"
+                            >+</button>
+                          </div>
                         ) : null;
                       })()}
                     </CardTitle>
@@ -1471,7 +1496,7 @@ function ActiveWorkout({ day, onFinish, onCancel, onPause }: { day: WorkoutDay; 
                             <Label>{language === 'es' ? 'Nombre del Ejercicio' : 'Exercise Name'}</Label>
                             <Input
                               defaultValue={getExerciseName(def, language)}
-                              onChange={(e) => updateExerciseGlobal(def.id, { customName: e.target.value })}
+                              onChange={(e) => updateExercisesByExerciseId(def.id, { customName: e.target.value })}
                               className="mt-2"
                             />
                           </div>
@@ -2053,11 +2078,13 @@ export default function TrackerPage() {
     }
   }, [isHydrated, profile]);
 
-  const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const selectedDay = useMemo(() => days.find(d => d.id === selectedDayId) || null, [days, selectedDayId]);
+
   const [completedSession, setCompletedSession] = useState<WorkoutSession | null>(null);
 
   const handleStartWorkout = (day: WorkoutDay) => {
-    setSelectedDay(day);
+    setSelectedDayId(day.id);
     setPhase('active');
   };
 
@@ -2067,7 +2094,7 @@ export default function TrackerPage() {
 
   const handlePause = () => {
     setPhase('select');
-    setSelectedDay(null);
+    setSelectedDayId(null);
   };
 
   const handleFinish = (exercises: LoggedExercise[], durationSecs: number) => {
@@ -2091,12 +2118,12 @@ export default function TrackerPage() {
   const handleCancel = () => {
     setActiveSession(null);
     setPhase('select');
-    setSelectedDay(null);
+    setSelectedDayId(null);
   };
 
   const handleDone = () => {
     setPhase('select');
-    setSelectedDay(null);
+    setSelectedDayId(null);
     setCompletedSession(null);
   };
 

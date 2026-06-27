@@ -97,7 +97,15 @@ npm run start
 
 ## 📜 Version History
 
-### `v1.4.0` (Latest Release - 2026-06-27)
+### `v1.5.0` (Latest Release - 2026-06-27)
+
+- **Rest Timer Stability**: The rest timer banner no longer disappears when clicked or touched — it only resets when a new set is completed. Replaced internal `useState` with `useRef` for the alert flag to eliminate cascading renders.
+- **Global Exercise Sync Fix**: Fixed a critical bug where editing a custom exercise name or category in the tracker failed to persist across all routine days. Now correctly uses `updateExercisesByExerciseId` instead of the broken `updateExerciseGlobal`.
+- **Recharts Optimization**: Added `minWidth={0}` and `minHeight={0}` to all `ResponsiveContainer` elements across tracker and dashboard, eliminating browser console warnings about zero-dimension charts.
+- **Tailwind CSS v4 Compliance**: Migrated deprecated `bg-gradient-to-*` classes to the new `bg-linear-to-*` syntax in the dashboard.
+- **Unused Import Cleanup**: Removed unused `Bell` import from the tracker page.
+
+### `v1.4.0` (Previous Release - 2026-06-27)
 
 - **Rest Timer Alerts**: The rest timer now turns red and emits an audio beep and vibration when the target rest duration is met, while allowing the timer to keep counting up.
 - **Partial Reps**: Added support for decimal repetitions (e.g., 8.5 reps) using the +/- buttons or manual entry for better tracking precision.
@@ -241,7 +249,14 @@ npm run start
 
 ## 📜 Historial de Versiones
 
-### `v1.4.0` (Lanzamiento Actual - 27/06/2026)
+### `v1.5.0` (Lanzamiento Actual - 27/06/2026)
+- **Estabilidad del Cronómetro de Descanso**: El cartel del cronómetro ya no desaparece al hacer click o tocarlo — solo se reinicia cuando se completa una nueva serie. Se reemplazó el `useState` interno por `useRef` para el flag de alerta, eliminando renderizados en cascada.
+- **Corrección de Sincronización Global de Ejercicios**: Se corrigió un bug crítico donde editar el nombre o categoría de un ejercicio personalizado en el tracker no se guardaba en todos los días de la rutina. Ahora usa correctamente `updateExercisesByExerciseId`.
+- **Optimización de Recharts**: Se añadió `minWidth={0}` y `minHeight={0}` a todos los `ResponsiveContainer` del tracker y dashboard, eliminando advertencias de consola sobre gráficos con dimensiones nulas.
+- **Compatibilidad con Tailwind CSS v4**: Se migraron las clases deprecadas `bg-gradient-to-*` a la nueva sintaxis `bg-linear-to-*` en el dashboard.
+- **Limpieza de Imports**: Se eliminó el import no utilizado `Bell` de la página del tracker.
+
+### `v1.4.0` (Lanzamiento Anterior - 27/06/2026)
 
 - **Alertas del Timer de Descanso**: El timer de descanso ahora cambia a rojo y emite un sonido y vibración cuando se alcanza el objetivo de descanso, mientras sigue contando hacia arriba para saber el tiempo exacto que tomaste.
 - **Repeticiones Parciales (Decimales)**: Se agregó soporte para repeticiones decimales (ej: 8.5 reps) usando los botones de +/- o ingresándolo manualmente.
