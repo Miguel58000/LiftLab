@@ -193,7 +193,10 @@ export default function DashboardPage() {
         profile.age || 25,
         profile.gender || 'male',
         weeklySetsTotal,
-        bestGoal
+        bestGoal,
+        profile.trainingObjective || 'hypertrophy',
+        profile.proteinPreferenceGPerKg,
+        profile.optOutExtraDeficitProtein
       );
       goalState = 'pending';
     } else {
@@ -221,7 +224,10 @@ export default function DashboardPage() {
       profile.age || 25, 
       profile.gender || 'male', 
       weeklySetsTotal, 
-      chosenGoal
+      chosenGoal,
+      profile.trainingObjective || 'hypertrophy',
+      profile.proteinPreferenceGPerKg,
+      profile.optOutExtraDeficitProtein
     );
     
     setProfile({ 
@@ -302,6 +308,27 @@ export default function DashboardPage() {
       setWeightFeedback({ message: msg, type });
       setWeightChangeData(null);
     }
+  };
+
+  const handleToggleDeficitProtein = (useBaseProtein: boolean) => {
+    if (!profile || !macrosAndState.macros) return;
+    const optOut = useBaseProtein;
+    const adjusted = calculateMacros(
+      profile.weightKg!,
+      profile.heightCm!,
+      profile.age || 25,
+      profile.gender || 'male',
+      weeklySetsTotal,
+      macrosAndState.macros.goal,
+      profile.trainingObjective || 'hypertrophy',
+      profile.proteinPreferenceGPerKg,
+      optOut
+    );
+    setProfile({
+      ...profile,
+      optOutExtraDeficitProtein: optOut,
+      targetMacros: adjusted
+    });
   };
 
   const handleSaveWeight = (val: string) => {
@@ -517,6 +544,37 @@ export default function DashboardPage() {
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{macro.label} {macro.unit && <span className="text-[10px] font-mono opacity-70">/ {macro.unit}</span>}</div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {goalState !== 'pending' && macros.goal === 'cutting' && (
+              <div className="mb-4 p-4 rounded-xl border border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-500/5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">💡</span>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-50">
+                      {language === 'es' ? 'Proteína optimizada para Definición' : 'Optimized Protein for Cutting'}
+                    </h4>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                      {language === 'es' 
+                        ? 'En déficit calórico, aumentamos automáticamente tu proteína (+0.2g/kg). La proteína aporta una alta saciedad y es primordial para preservar tu masa muscular durante esta etapa.' 
+                        : 'During a caloric deficit, we automatically increase your protein (+0.2g/kg). Protein provides high satiety and is essential for preserving muscle mass.'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t border-blue-100 dark:border-blue-900/20">
+                  <label htmlFor="protein-boost-toggle" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                    {language === 'es' ? 'Mantener proteína base elegida por el usuario' : 'Keep user\'s base protein target'}
+                  </label>
+                  <input
+                    id="protein-boost-toggle"
+                    type="checkbox"
+                    checked={!!profile?.optOutExtraDeficitProtein}
+                    onChange={(e) => handleToggleDeficitProtein(e.target.checked)}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
               </div>
             )}
 

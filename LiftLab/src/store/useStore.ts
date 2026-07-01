@@ -63,6 +63,7 @@ export interface UserProfile {
   trainingHoursWeekly?: number;
   trainingObjective?: 'hypertrophy' | 'strength' | 'endurance';
   proteinPreferenceGPerKg?: number;
+  optOutExtraDeficitProtein?: boolean;
 
   heightCm?: number;
   weightKg?: number;

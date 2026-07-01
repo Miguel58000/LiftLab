@@ -249,7 +249,12 @@ npm run start
 
 ## 📜 Historial de Versiones
 
-### `v1.5.0` (Lanzamiento Actual - 27/06/2026)
+### `v1.6.0` (Lanzamiento Actual - 01/07/2026)
+- **Proteína Optimizada en Déficit**: Se agregó un indicador visual y la opción de mantener la proteína base elegida por el usuario durante la fase de déficit calórico.
+- **Corrección de Sincronización Global de Ejercicios**: Se corrigió un bug crítico donde editar el nombre o categoría de un ejercicio personalizado en el tracker no se guardaba en todos los días de la rutina. Ahora usa correctamente `updateExercisesByExerciseId`.
+- **Optimización de Recharts**: Se añadió `minWidth={0}` y `minHeight={0}` a todos los `ResponsiveContainer` del tracker y dashboard, eliminando advertencias de consola sobre gráficos con dimensiones nulas.
+
+### `v1.5.0` (Lanzamiento Anterior - 27/06/2026)
 - **Estabilidad del Cronómetro de Descanso**: El cartel del cronómetro ya no desaparece al hacer click o tocarlo — solo se reinicia cuando se completa una nueva serie. Se reemplazó el `useState` interno por `useRef` para el flag de alerta, eliminando renderizados en cascada.
 - **Corrección de Sincronización Global de Ejercicios**: Se corrigió un bug crítico donde editar el nombre o categoría de un ejercicio personalizado en el tracker no se guardaba en todos los días de la rutina. Ahora usa correctamente `updateExercisesByExerciseId`.
 - **Optimización de Recharts**: Se añadió `minWidth={0}` y `minHeight={0}` a todos los `ResponsiveContainer` del tracker y dashboard, eliminando advertencias de consola sobre gráficos con dimensiones nulas.

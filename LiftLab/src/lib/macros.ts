@@ -24,7 +24,8 @@ export function calculateMacros(
   trainingHours: number,
   goal: FitnessGoal,
   objective: TrainingObjective = 'hypertrophy',
-  userProteinPref?: number
+  userProteinPref?: number,
+  optOutExtraDeficitProtein?: boolean
 ): MacroResult {
   // Normalizar el objetivo a una fase nutricional válida para el cálculo calórico
   const nutritionPhase: NutritionPhase = (goal === 'cutting' || goal === 'bulking' || goal === 'maintenance') ? goal : 'maintenance';
@@ -58,12 +59,18 @@ export function calculateMacros(
       calories = tdee;
   }
 
-  // Protein: User pref or default based on science (1.6-2.2 range)
-  const proteinGPerKg = userProteinPref || (nutritionPhase === 'cutting' ? 1.8 : objective === 'strength' ? 1.8 : 1.6);
+  // Protein: User pref or default based on training objective.
+  // In cutting phase, we add +0.2 g/kg for satiety, unless opted out.
+  const defaultProtein = objective === 'strength' ? 1.8 : 1.6;
+  const baseProteinGPerKg = userProteinPref || defaultProtein;
+  let proteinGPerKg = baseProteinGPerKg;
+  if (nutritionPhase === 'cutting' && !optOutExtraDeficitProtein) {
+    proteinGPerKg = baseProteinGPerKg + 0.2;
+  }
   const protein = Math.round(proteinGPerKg * weightKg);
 
-  // Healthy Fat: Vital for hormones (0.8g - 1g / kg)
-  const fatGPerKg = 0.9; // Vital for hormonal health as requested
+  // Healthy Fat: Vital for hormones (0.9g / kg)
+  const fatGPerKg = 0.9;
   const fat = Math.round(fatGPerKg * weightKg);
 
   // Carbs fill the rest

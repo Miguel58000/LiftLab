@@ -209,8 +209,8 @@ function Footer() {
   if (isLogin) return null;
 
   const footerText = language === "es"
-    ? "Desarrollado por Miguel Rodríguez - 2026 - v1.5.0 - Todos los derechos reservados"
-    : "Developed by Miguel Rodríguez - 2026 - v1.5.0 - All rights reserved";
+    ? "Desarrollado por Miguel Rodríguez - 2026 - v1.6.0 - Todos los derechos reservados"
+    : "Developed by Miguel Rodríguez - 2026 - v1.6.0 - All rights reserved";
 
   return (
     <footer className="w-full border-t border-zinc-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-950 py-6 text-center transition-colors">
